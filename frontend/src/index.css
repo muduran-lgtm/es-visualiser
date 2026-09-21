@@ -66,3 +66,86 @@ html.light ::-webkit-scrollbar-thumb:hover {
 .animate-fadeIn {
   animation: fadeIn 0.15s ease-out forwards;
 }
+
+/* ==========================================================================
+   React Flow Controls (Zoom In, Zoom Out, Fit View, Toggle Interactivity)
+   Guarantees crisp, high-contrast visibility in both Light & Dark modes
+   ========================================================================== */
+
+/* Light Theme (Daytime mode) */
+html.light .react-flow__controls {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  background-color: #ffffff !important;
+}
+
+html.light .react-flow__controls-button {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  fill: #0f172a !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+html.light .react-flow__controls-button:hover {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+  fill: #000000 !important;
+}
+
+html.light .react-flow__controls-button svg {
+  fill: #0f172a !important;
+  color: #0f172a !important;
+}
+
+html.light .react-flow__controls-button svg path {
+  fill: #0f172a !important;
+}
+
+html.light .react-flow__controls-button:hover svg,
+html.light .react-flow__controls-button:hover svg path {
+  fill: #000000 !important;
+}
+
+/* Dark Theme (Night mode) */
+html.dark .react-flow__controls {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid #2d3139 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  background-color: #1a1c24 !important;
+}
+
+html.dark .react-flow__controls-button {
+  background-color: #1a1c24 !important;
+  border-bottom: 1px solid #282b35 !important;
+  color: #e2e8f0 !important;
+  fill: #e2e8f0 !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+html.dark .react-flow__controls-button:hover {
+  background-color: #262936 !important;
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+html.dark .react-flow__controls-button svg {
+  fill: #e2e8f0 !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark .react-flow__controls-button svg path {
+  fill: #ffffff !important;
+}
+
+html.dark .react-flow__controls-button:hover svg,
+html.dark .react-flow__controls-button:hover svg path {
+  fill: #ffffff !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}

@@ -100,6 +100,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        colorMode={isDarkTheme ? 'dark' : 'light'}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -121,11 +122,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           color={isDarkTheme ? '#272a34' : '#cbd5e1'} 
         />
         <Controls 
-          className={`rounded-lg shadow-lg ${
-            isDarkTheme 
-              ? 'bg-[#1c1e26] border border-[#2d3139] text-white fill-white [&>button]:border-[#2d3139] [&>button]:bg-[#1c1e26] [&>button]:hover:bg-[#282b37] [&>button]:text-white' 
-              : 'bg-white border border-slate-300 text-slate-700 fill-slate-700 [&>button]:border-slate-300 [&>button]:bg-white [&>button]:hover:bg-slate-100 [&>button]:text-slate-700'
-          }`} 
+          className="rounded-lg overflow-hidden shadow-md" 
         />
         <MiniMap
           nodeColor={(n) => {
