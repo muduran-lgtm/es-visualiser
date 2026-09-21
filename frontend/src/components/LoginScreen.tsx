@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Key, AlertCircle, Shield, ArrowRight } from 'lucide-react';
+import { PanoptextEyeLogo } from './PanoptextEyeLogo.js';
 
 interface LoginScreenProps {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -33,12 +34,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       <div className="w-full max-w-md bg-[#181920] border border-[#2d3139] rounded-2xl shadow-2xl overflow-hidden relative z-10 animate-fadeIn">
         {/* Card Header */}
         <div className="p-8 pb-6 text-center border-b border-[#2d3139]/70 bg-[#1e2029]/70">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00bfb3] to-[#0077cc] mx-auto flex items-center justify-center font-black text-black text-2xl shadow-lg mb-3">
-            P
+          <div className="w-14 h-14 rounded-2xl bg-[#0D5EAF]/10 border border-[#0D5EAF]/30 mx-auto flex items-center justify-center shadow-lg mb-3">
+            <PanoptextEyeLogo size={36} color="#0D5EAF" />
           </div>
-          <div className="flex items-center justify-center gap-1.5">
+          <div className="flex items-center justify-center gap-1">
             <span className="text-xl font-extrabold text-white tracking-wide">Panoptext</span>
-            <span className="text-xl font-bold text-[#00bfb3]">.Visualiser</span>
+            <span className="text-xl font-bold text-[#0D5EAF]">.Visualiser</span>
           </div>
           <p className="text-xs text-neutral-400 mt-1">
             Enterprise Elastic Workflows Orchestrator
