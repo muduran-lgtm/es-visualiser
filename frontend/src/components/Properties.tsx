@@ -6,6 +6,7 @@ import {
 import { CustomNode, WorkflowNodeData } from '../types.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { ValidationError, QuickFix } from '../services/validator.js';
+import { sanitizeSensitiveData, sanitizeSensitiveString } from '../services/sanitizer.js';
 
 interface PropertiesProps {
   selectedNode: CustomNode | null;
@@ -187,7 +188,7 @@ export const Properties: React.FC<PropertiesProps> = ({
             {nodeData.executionError && (
               <div className="p-2 rounded bg-rose-950/60 border border-rose-900/60 text-rose-300 font-mono text-[11px] break-words">
                 <div className="font-bold text-[10px] text-rose-400 uppercase">Error:</div>
-                <div>{typeof nodeData.executionError === 'object' ? JSON.stringify(nodeData.executionError, null, 2) : String(nodeData.executionError)}</div>
+                <div>{typeof nodeData.executionError === 'object' ? JSON.stringify(sanitizeSensitiveData(nodeData.executionError), null, 2) : sanitizeSensitiveString(String(nodeData.executionError))}</div>
               </div>
             )}
 
@@ -198,7 +199,7 @@ export const Properties: React.FC<PropertiesProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(JSON.stringify(nodeData.executionOutput, null, 2));
+                      navigator.clipboard.writeText(JSON.stringify(sanitizeSensitiveData(nodeData.executionOutput), null, 2));
                       setOutputCopied(true);
                       setTimeout(() => setOutputCopied(false), 1500);
                     }}
@@ -211,7 +212,7 @@ export const Properties: React.FC<PropertiesProps> = ({
                 <pre className={`p-2 rounded font-mono text-[10px] max-h-36 overflow-auto border leading-relaxed ${
                   isDarkTheme ? 'bg-[#0d0f14] border-[#1e2330] text-emerald-300' : 'bg-white border-slate-200 text-slate-800'
                 }`}>
-                  {JSON.stringify(nodeData.executionOutput, null, 2)}
+                  {JSON.stringify(sanitizeSensitiveData(nodeData.executionOutput), null, 2)}
                 </pre>
               </div>
             )}

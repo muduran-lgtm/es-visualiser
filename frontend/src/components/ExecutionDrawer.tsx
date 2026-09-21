@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { WorkflowExecutionDetail, WorkflowExecutionSummary, StepExecutionDetail } from '../types.js';
 import { useTheme } from '../context/ThemeContext.js';
+import { sanitizeSensitiveData, sanitizeSensitiveString } from '../services/sanitizer.js';
 
 interface ExecutionDrawerProps {
   currentWorkflowId: string;
@@ -328,7 +329,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
                   </div>
 
                   <button
-                    onClick={() => handleCopy(JSON.stringify(selectedStep.state || selectedStep.error || {}, null, 2))}
+                    onClick={() => handleCopy(JSON.stringify(sanitizeSensitiveData(selectedStep.state || selectedStep.error || {}), null, 2))}
                     className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] transition-colors ${
                       isDarkTheme ? 'hover:bg-neutral-800 text-neutral-300' : 'hover:bg-slate-200 text-slate-700'
                     }`}
@@ -345,7 +346,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
                     <AlertTriangle size={15} className="text-rose-400 shrink-0 mt-0.5" />
                     <div>
                       <div className="font-bold">Execution Error:</div>
-                      <div>{typeof selectedStep.error === 'object' ? JSON.stringify(selectedStep.error, null, 2) : String(selectedStep.error)}</div>
+                      <div>{typeof selectedStep.error === 'object' ? JSON.stringify(sanitizeSensitiveData(selectedStep.error), null, 2) : sanitizeSensitiveString(String(selectedStep.error))}</div>
                     </div>
                   </div>
                 )}
@@ -361,9 +362,9 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
                       : 'bg-slate-50 border-slate-200 text-slate-900'
                   }`}>
                     {selectedStep.state 
-                      ? JSON.stringify(selectedStep.state, null, 2) 
+                      ? JSON.stringify(sanitizeSensitiveData(selectedStep.state), null, 2) 
                       : selectedStep.error 
-                        ? JSON.stringify(selectedStep.error, null, 2)
+                        ? JSON.stringify(sanitizeSensitiveData(selectedStep.error), null, 2)
                         : '// No output state recorded for this step.'}
                   </pre>
                 </div>

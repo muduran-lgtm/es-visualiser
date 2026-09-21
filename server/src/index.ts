@@ -9,6 +9,7 @@ import { AuthStore } from './authStore.js';
 import { MockWorkflowService, RealKibanaService, IWorkflowService } from './kibanaClient.js';
 import { WorkflowSaveRequest } from './types.js';
 import { validateWorkflow } from './workflowValidator.js';
+import { sanitizeSensitiveString } from './sanitizer.js';
 
 dotenv.config();
 
@@ -44,6 +45,17 @@ function getActiveService(): IWorkflowService {
 async function start() {
   await fastify.register(cors, {
     origin: true
+  });
+
+  fastify.setErrorHandler((error: any, _request: any, reply: any) => {
+    const statusCode = error.statusCode || 500;
+    const cleanMessage = sanitizeSensitiveString(error.message || 'Internal Server Error');
+    fastify.log.error(cleanMessage);
+    reply.status(statusCode).send({
+      statusCode,
+      error: error.name || 'Error',
+      message: cleanMessage
+    });
   });
 
   // --- Authentication & User Settings Routes ---

@@ -4,6 +4,7 @@ import {
   WorkflowExecutionDetail, 
   WorkflowExecutionSummary 
 } from '../types.js';
+import { sanitizeSensitiveData, sanitizeSensitiveString } from './sanitizer.js';
 
 const API_BASE = '/api';
 
@@ -97,7 +98,7 @@ export async function saveWorkflowApi(req: {
       const parsed = JSON.parse(text);
       errorMsg = parsed.message || parsed.error || text;
     } catch {}
-    throw new Error(errorMsg);
+    throw new Error(sanitizeSensitiveString(errorMsg));
   }
 
   return await res.json();
@@ -123,7 +124,7 @@ export async function runWorkflowApi(req: {
       const parsed = JSON.parse(text);
       msg = parsed.message || parsed.error || text;
     } catch {}
-    throw new Error(msg);
+    throw new Error(sanitizeSensitiveString(msg));
   }
 
   return await res.json();
@@ -133,9 +134,10 @@ export async function fetchExecutionApi(executionId: string): Promise<WorkflowEx
   const res = await fetch(`${API_BASE}/workflows/executions/${encodeURIComponent(executionId)}`);
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `Failed to fetch execution (${executionId}).`);
+    throw new Error(sanitizeSensitiveString(text) || `Failed to fetch execution (${executionId}).`);
   }
-  return await res.json();
+  const data = await res.json();
+  return sanitizeSensitiveData(data);
 }
 
 export async function fetchWorkflowExecutionsApi(workflowId: string): Promise<WorkflowExecutionSummary[]> {

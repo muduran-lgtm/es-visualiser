@@ -9,6 +9,7 @@ import {
   StepExecutionDetail
 } from './types.js';
 import { INITIAL_MOCK_WORKFLOWS } from './mockData.js';
+import { sanitizeSensitiveData, sanitizeSensitiveString } from './sanitizer.js';
 
 export interface IWorkflowService {
   listWorkflows(): Promise<WorkflowItem[]>;
@@ -433,7 +434,7 @@ export class RealKibanaService implements IWorkflowService {
         const parsed = JSON.parse(errText);
         errorMsg = parsed.message || parsed.error || errText;
       } catch {}
-      throw new Error(`Kibana save error (${res.status}): ${errorMsg}`);
+      throw new Error(`Kibana save error (${res.status}): ${sanitizeSensitiveString(errorMsg)}`);
     }
 
     const saved = await res.json() as any;
@@ -514,7 +515,7 @@ export class RealKibanaService implements IWorkflowService {
       const parsed = JSON.parse(errText);
       msg = parsed.message || parsed.error || errText;
     } catch {}
-    throw new Error(`Failed to trigger workflow execution: ${msg}`);
+    throw new Error(`Failed to trigger workflow execution: ${sanitizeSensitiveString(msg)}`);
   }
 
   async getExecution(executionId: string): Promise<WorkflowExecutionDetail> {
@@ -528,7 +529,7 @@ export class RealKibanaService implements IWorkflowService {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`Failed to fetch execution (${executionId}): ${text}`);
+      throw new Error(`Failed to fetch execution (${executionId}): ${sanitizeSensitiveString(text)}`);
     }
 
     const data = await res.json() as any;
@@ -542,7 +543,7 @@ export class RealKibanaService implements IWorkflowService {
       startedAt: data.startedAt || new Date().toISOString(),
       finishedAt: data.finishedAt,
       duration: data.duration,
-      error: data.error,
+      error: sanitizeSensitiveData(data.error),
       stepExecutions: rawSteps.map((s: any) => ({
         id: s.id,
         stepId: s.stepId,
@@ -551,8 +552,8 @@ export class RealKibanaService implements IWorkflowService {
         startedAt: s.startedAt,
         finishedAt: s.finishedAt,
         executionTimeMs: s.executionTimeMs,
-        state: s.state,
-        error: s.error
+        state: sanitizeSensitiveData(s.state),
+        error: sanitizeSensitiveData(s.error)
       }))
     };
   }
