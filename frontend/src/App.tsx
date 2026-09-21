@@ -6,6 +6,7 @@ import { Canvas } from './components/Canvas.js';
 import { Properties } from './components/Properties.js';
 import { YamlEditor } from './components/YamlEditor.js';
 import { DiffModal } from './components/DiffModal.js';
+import { RevisionHistoryModal } from './components/RevisionHistoryModal.js';
 import { SettingsDrawer } from './components/SettingsDrawer.js';
 import { LeftSettingsDrawer } from './components/LeftSettingsDrawer.js';
 import { ExecutionDrawer } from './components/ExecutionDrawer.js';
@@ -37,7 +38,7 @@ import {
   fetchCurrentUserApi
 } from './services/auth.js';
 import { useTheme } from './context/ThemeContext.js';
-import { CustomNode, ClientConnectionSummary, WorkflowSummary, WorkflowNodeData, UserProfile, WorkflowExecutionDetail, WorkflowExecutionSummary } from './types.js';
+import { CustomNode, ClientConnectionSummary, WorkflowSummary, WorkflowNodeData, UserProfile, WorkflowExecutionDetail, WorkflowExecutionSummary, WorkflowRevision } from './types.js';
 
 export const App: React.FC = () => {
   // --- Auth & User State ---
@@ -68,6 +69,7 @@ export const App: React.FC = () => {
 
   // --- UI & Modal State ---
   const [isDiffOpen, setIsDiffOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -397,6 +399,30 @@ export const App: React.FC = () => {
     }
   };
 
+  // Rollback success handler
+  const handleRollbackSuccess = (restoredWorkflow: WorkflowSummary, revision: WorkflowRevision) => {
+    setOriginalYaml(restoredWorkflow.yaml);
+    setYamlContent(restoredWorkflow.yaml);
+    setWorkflowName(restoredWorkflow.name);
+    setWorkflowEnabled(restoredWorkflow.enabled);
+
+    // Synchronize restored workflow graph
+    try {
+      const { nodes: newNodes, edges: newEdges } = yamlToGraph(restoredWorkflow.yaml);
+      setNodes(newNodes);
+      setEdges(newEdges);
+    } catch (err) {
+      console.error('Failed to parse rolled back YAML to canvas:', err);
+    }
+
+    setNotification({
+      type: 'success',
+      message: `Restored Revision #${revision.revisionNumber} (authored by ${revision.author.fullName}).`
+    });
+    setIsHistoryOpen(false);
+    loadWorkflows();
+  };
+
   // New Workflow Templates
   const handleNewWorkflow = (templateKey: 'blank' | 'simple' | 'search' | 'flow') => {
     let tplYaml = '';
@@ -639,6 +665,7 @@ export const App: React.FC = () => {
           }}
           onAutoLayout={handleAutoLayout}
           onOpenDiff={() => setIsDiffOpen(true)}
+          onOpenHistory={() => setIsHistoryOpen(true)}
           onSave={handleSave}
           onReload={handleReload}
           onNewWorkflow={handleNewWorkflow}
@@ -757,6 +784,16 @@ export const App: React.FC = () => {
           originalYaml={originalYaml}
           currentYaml={yamlContent}
           onConfirmSave={handleSave}
+        />
+
+        {/* Workflow Version History & Rollback Modal */}
+        <RevisionHistoryModal
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          workflowId={currentWorkflowId}
+          workflowName={workflowName}
+          currentYaml={yamlContent}
+          onRollbackSuccess={handleRollbackSuccess}
         />
       </div>
     </ReactFlowProvider>

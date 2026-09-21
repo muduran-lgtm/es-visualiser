@@ -6,8 +6,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ConnectionsStore } from './connectionsStore.js';
 import { AuthStore } from './authStore.js';
+import { RevisionStore } from './revisionStore.js';
 import { MockWorkflowService, RealKibanaService, IWorkflowService } from './kibanaClient.js';
-import { WorkflowSaveRequest } from './types.js';
+import { WorkflowSaveRequest, WorkflowRevisionAuthor, WorkflowItem } from './types.js';
 import { validateWorkflow } from './workflowValidator.js';
 import { sanitizeSensitiveString } from './sanitizer.js';
 
@@ -32,7 +33,32 @@ const fastify = Fastify({
 
 const store = new ConnectionsStore();
 const authStore = new AuthStore();
+const revisionStore = new RevisionStore();
 const mockService = new MockWorkflowService();
+
+function getAuthorFromReq(req: any): WorkflowRevisionAuthor {
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '') || (req.query as any)?.token;
+  if (token) {
+    const user = authStore.getUserByToken(token);
+    if (user) {
+      return {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        avatarColor: user.avatarColor,
+        role: user.role
+      };
+    }
+  }
+  return {
+    id: 'usr-admin',
+    username: 'admin',
+    fullName: 'System Administrator',
+    avatarColor: '#00bfb3',
+    role: 'admin'
+  };
+}
 
 function getActiveService(): IWorkflowService {
   const active = store.getActiveConnection();
@@ -292,7 +318,14 @@ async function start() {
   fastify.post('/api/workflows', async (req) => {
     const body = req.body as WorkflowSaveRequest;
     const service = getActiveService();
-    return await service.saveWorkflow(body);
+    const saved = await service.saveWorkflow(body);
+    const author = getAuthorFromReq(req);
+    revisionStore.addRevision(saved.id, saved.yaml, author, {
+      name: saved.name,
+      description: saved.description,
+      enabled: saved.enabled
+    });
+    return saved;
   });
 
   fastify.put('/api/workflows/:id', async (req) => {
@@ -300,13 +333,95 @@ async function start() {
     const body = req.body as WorkflowSaveRequest;
     body.id = id;
     const service = getActiveService();
-    return await service.saveWorkflow(body);
+    const saved = await service.saveWorkflow(body);
+    const author = getAuthorFromReq(req);
+    revisionStore.addRevision(saved.id, saved.yaml, author, {
+      name: saved.name,
+      description: saved.description,
+      enabled: saved.enabled
+    });
+    return saved;
   });
 
   fastify.delete('/api/workflows/:id', async (req) => {
     const { id } = req.params as { id: string };
     const service = getActiveService();
-    return await service.deleteWorkflow(id);
+    const res = await service.deleteWorkflow(id);
+    if (res) {
+      revisionStore.deleteRevisions(id);
+    }
+    return res;
+  });
+
+  // --- Workflow Revision History & Rollback Routes ---
+  fastify.get('/api/workflows/:id/revisions', async (req) => {
+    const { id } = req.params as { id: string };
+    const service = getActiveService();
+    let currentWf: WorkflowItem | null = null;
+    try {
+      currentWf = await service.getWorkflow(id);
+    } catch {}
+
+    const revisions = revisionStore.getRevisions(id, currentWf ? {
+      name: currentWf.name,
+      yaml: currentWf.yaml,
+      description: currentWf.description,
+      enabled: currentWf.enabled
+    } : undefined);
+
+    return { revisions };
+  });
+
+  fastify.get('/api/workflows/:id/revisions/:revId', async (req, reply) => {
+    const { id, revId } = req.params as { id: string; revId: string };
+    const rev = revisionStore.getRevision(id, revId);
+    if (!rev) {
+      reply.status(404);
+      return { error: `Revision "${revId}" not found for workflow "${id}".` };
+    }
+    return { revision: rev };
+  });
+
+  fastify.post('/api/workflows/:id/rollback', async (req: any, reply: any) => {
+    const { id } = req.params as { id: string };
+    const { revisionId, note } = (req.body as any) || {};
+    if (!revisionId) {
+      reply.status(400);
+      return { error: 'revisionId is required for rollback.' };
+    }
+
+    const targetRev = revisionStore.getRevision(id, revisionId);
+    if (!targetRev) {
+      reply.status(404);
+      return { error: `Target revision "${revisionId}" not found.` };
+    }
+
+    const service = getActiveService();
+    const author = getAuthorFromReq(req);
+
+    // Save restored YAML back to active service (Kibana / Mock)
+    const saved = await service.saveWorkflow({
+      id,
+      name: targetRev.name,
+      description: targetRev.description,
+      enabled: targetRev.enabled,
+      yaml: targetRev.yaml
+    });
+
+    // Record the rollback as a new revision
+    const rollbackSummary = note || `Rollback to Revision #${targetRev.revisionNumber}`;
+    const newRev = revisionStore.addRevision(id, targetRev.yaml, author, {
+      name: saved.name,
+      description: saved.description,
+      enabled: saved.enabled,
+      summary: rollbackSummary
+    });
+
+    return {
+      success: true,
+      workflow: saved,
+      revision: newRev
+    };
   });
 
   // --- Workflow Executions & Live Monitoring ---

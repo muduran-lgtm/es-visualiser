@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Menu, Save, RotateCcw, LayoutTemplate, 
-  GitCommit, Download, Plus,
+  GitCommit, Download, Plus, History,
   ChevronDown, Sun, Moon, Key, LogOut, Shield, AlertTriangle,
   Play, Square, Activity, Loader2
 } from 'lucide-react';
@@ -32,6 +32,7 @@ interface TopBarProps {
   onToggleEnabled: () => void;
   onAutoLayout: () => void;
   onOpenDiff: () => void;
+  onOpenHistory?: () => void;
   onSave: () => void;
   onReload: () => void;
   onNewWorkflow: (templateKey: 'blank' | 'simple' | 'search' | 'flow') => void;
@@ -59,6 +60,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onToggleEnabled,
   onAutoLayout,
   onOpenDiff,
+  onOpenHistory,
   onSave,
   onReload,
   onNewWorkflow,
@@ -283,6 +285,22 @@ export const TopBar: React.FC<TopBarProps> = ({
           <GitCommit size={13} />
           <span className="hidden xl:inline">Diff</span>
         </button>
+
+        {/* Version History & Rollback button */}
+        {onOpenHistory && (
+          <button
+            onClick={onOpenHistory}
+            className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors border cursor-pointer ${
+              isDarkTheme
+                ? 'text-neutral-300 bg-[#20222b] hover:bg-[#272a37] border-[#2d3139]'
+                : 'text-slate-700 bg-slate-100 hover:bg-slate-200 border-slate-300'
+            }`}
+            title="Version History & Rollback (Last 10 Revisions)"
+          >
+            <History size={13} className="text-[#00bfb3]" />
+            <span className="hidden xl:inline">History</span>
+          </button>
+        )}
 
         {/* Download YAML */}
         <button

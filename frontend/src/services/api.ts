@@ -2,9 +2,11 @@ import {
   ClientConnectionSummary, 
   WorkflowSummary, 
   WorkflowExecutionDetail, 
-  WorkflowExecutionSummary 
+  WorkflowExecutionSummary,
+  WorkflowRevision 
 } from '../types.js';
 import { sanitizeSensitiveData, sanitizeSensitiveString } from './sanitizer.js';
+import { getStoredToken } from './auth.js';
 
 const API_BASE = '/api';
 
@@ -85,10 +87,61 @@ export async function saveWorkflowApi(req: {
   const url = isUpdate ? `${API_BASE}/workflows/${encodeURIComponent(req.id!)}` : `${API_BASE}/workflows`;
   const method = isUpdate ? 'PUT' : 'POST';
 
+  const token = getStoredToken();
   const res = await fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
     body: JSON.stringify(req)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    let errorMsg = text;
+    try {
+      const parsed = JSON.parse(text);
+      errorMsg = parsed.message || parsed.error || text;
+    } catch {}
+    throw new Error(sanitizeSensitiveString(errorMsg));
+  }
+
+  return await res.json();
+}
+
+// --- Workflow Revision History & Rollback APIs ---
+
+export async function fetchWorkflowRevisions(workflowId: string): Promise<WorkflowRevision[]> {
+  const token = getStoredToken();
+  const res = await fetch(`${API_BASE}/workflows/${encodeURIComponent(workflowId)}/revisions`, {
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'Failed to fetch revision history.');
+  }
+
+  const data = await res.json();
+  return data.revisions || [];
+}
+
+export async function rollbackWorkflowApi(
+  workflowId: string, 
+  revisionId: string, 
+  note?: string
+): Promise<{ success: boolean; workflow: WorkflowSummary; revision: WorkflowRevision }> {
+  const token = getStoredToken();
+  const res = await fetch(`${API_BASE}/workflows/${encodeURIComponent(workflowId)}/rollback`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ revisionId, note })
   });
 
   if (!res.ok) {

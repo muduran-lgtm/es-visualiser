@@ -15,6 +15,7 @@ build/
 certs/
 server/data/connections.json
 server/data/users.json
+server/data/revisions.json
 server/data/kibanaSchema.json
 
 # Logs

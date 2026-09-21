@@ -150,3 +150,24 @@ export interface UserProfile {
   enabled: boolean;
   preferences: UserPreferences;
 }
+
+export interface WorkflowRevisionAuthor {
+  id: string;
+  username: string;
+  fullName: string;
+  avatarColor?: string;
+  role?: string;
+}
+
+export interface WorkflowRevision {
+  revisionId: string;
+  workflowId: string;
+  revisionNumber: number;
+  timestamp: string;
+  author: WorkflowRevisionAuthor;
+  summary: string;
+  yaml: string;
+  name?: string;
+  description?: string;
+  enabled?: boolean;
+}
