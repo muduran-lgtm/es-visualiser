@@ -115,6 +115,41 @@ The script automatically:
 
 ---
 
+## 📋 System Requirements
+
+Panoptext Visualiser is lightweight, resource-efficient, and optimized to run smoothly on edge servers, cloud VMs, or dedicated bare-metal instances.
+
+### Hardware Specifications
+
+| Resource | Minimum Requirement | Recommended Specification |
+| :--- | :--- | :--- |
+| **CPU / Processor** | 1 Core (vCPU) | 2 Cores (vCPU) or higher |
+| **Memory (RAM)** | 1 GB RAM *(with swap enabled)* | 2 GB RAM or higher |
+| **Disk Space** | 1 GB free disk space | 3 GB+ free disk space |
+| **Architecture** | `x86_64` (amd64) or `aarch64` (ARM64) | `x86_64` or `aarch64` (AWS Graviton, Apple Silicon, Raspberry Pi 4+) |
+
+*Real-world footprint: The running application requires only ~280 MB active RAM and ~250 MB total disk footprint.*
+
+### Software & Operating System
+
+| Component | Minimum Supported | Tested & Recommended |
+| :--- | :--- | :--- |
+| **Operating System** | Any Linux distribution with `systemd` | Ubuntu 22.04 / 24.04 LTS, Debian 12, Rocky/AlmaLinux 9 |
+| **Node.js Runtime** | Node.js **v20.12.0+** LTS *(installed automatically)* | Node.js **v22.x** LTS |
+| **Package Manager** | npm **v9+** / **v10+** *(bundled with Node.js)* | npm v10+ |
+| **Core Utilities** | `curl`, `git`, `openssl` *(installed automatically)* | Standard distro package versions |
+| **Init System** | `systemd` *(for automated service management)* | systemd v245+ |
+
+### Network & Firewall Ports
+
+| Port | Protocol | Direction | Purpose |
+| :--- | :--- | :--- | :--- |
+| **`5173`** | TCP / HTTPS | Inbound | Web Interface (Vite / React Flow UI) |
+| **`3001`** | TCP / HTTPS | Inbound / Localhost | Backend API & Elastic Workflows Proxy |
+| **`5601` / `443`** | TCP / HTTPS | Outbound | Target Kibana cluster API connectivity |
+
+---
+
 ## 🛠️ Manual Installation & Development
 
 ### 1. Prerequisites
