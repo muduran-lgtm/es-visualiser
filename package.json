@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"npm run dev -w server\" \"npm run dev -w frontend\"",
+    "start": "concurrently -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"npm run dev -w server\" \"npm run dev -w frontend\"",
     "build": "npm run build -w server && npm run build -w frontend",
     "test": "npm run test -w frontend"
   },

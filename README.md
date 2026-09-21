@@ -96,9 +96,26 @@ elastic-workflows-editor/
             └── yamlSync.ts    # Lossless AST bidirectional synchronization
 ```
 
+## ⚡ Quick Start (1-Line Automated Install)
+
+On any Linux server (Ubuntu, Debian, RHEL, CentOS, Rocky, AlmaLinux, Alpine, Arch), install and start Panoptext Visualiser with a single command:
+
+```bash
+curl -sfL https://raw.githubusercontent.com/muduran-lgtm/es-visualiser/main/install.sh | sudo bash -
+```
+
+The script automatically:
+- Installs all dependencies (**Node.js 22 LTS**, Git, OpenSSL, curl) if missing.
+- Clones and builds the project in `/opt/panoptext-visualiser`.
+- Generates 10-year self-signed TLS certificates for HTTPS.
+- Sets up and launches a `systemd` auto-start service (`panoptext-visualiser.service`).
+- Displays your server's web access URL (`https://<SERVER_IP>:5173`).
+
+> **💡 Smooth Updates:** To update an existing installation to the latest version in the future, simply re-run the same 1-line command!
+
 ---
 
-## ⚙️ Getting Started
+## 🛠️ Manual Installation & Development
 
 ### 1. Prerequisites
 - **Node.js**: v20 or v22 LTS
