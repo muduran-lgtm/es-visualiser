@@ -191,7 +191,7 @@ if [ ! -f "$INSTALL_DIR/certs/cert.pem" ] || [ ! -f "$INSTALL_DIR/certs/key.pem"
         -keyout "$INSTALL_DIR/certs/key.pem" \
         -out "$INSTALL_DIR/certs/cert.pem" \
         -days 3650 \
-        -subj "/CN=panoptext.visualiser/O=Panoptext/C=TR" >/dev/null 2>&1
+        -subj "/CN=panoptext.visualiser/O=Panoptext/C=US" >/dev/null 2>&1
     chmod 600 "$INSTALL_DIR/certs/key.pem"
     log_success "TLS certificates generated in ${INSTALL_DIR}/certs/"
 fi
@@ -236,10 +236,12 @@ if [ "$SERVICE_NAME" = "panoptext-visualiser" ]; then
 fi
 
 systemctl daemon-reload
-systemctl enable "${SERVICE_NAME}" >/dev/null 2>&1
+systemctl enable "${SERVICE_NAME}"
 systemctl restart "${SERVICE_NAME}"
 
-log_success "Service ${SERVICE_NAME} started and enabled at boot."
+if systemctl is-enabled --quiet "${SERVICE_NAME}"; then
+    log_success "Systemd service ${SERVICE_NAME} enabled to start automatically on system reboot."
+fi
 
 # 7. Print Completion Banner
 PRIMARY_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
@@ -251,6 +253,7 @@ echo -e "${BOLD}${GREEN}  Panoptext Visualiser (es-visualiser) Installed Success
 echo -e "${GREEN}======================================================================${NC}"
 echo ""
 echo -e "  🌐 ${BOLD}Web Interface:${NC}      https://${PRIMARY_IP}:5173"
+echo -e "  🔐 ${BOLD}Default Login:${NC}      Username: ${CYAN}admin${NC} | Password: ${CYAN}admin${NC}"
 echo -e "  ⚙️  ${BOLD}Service Status:${NC}     systemctl status ${SERVICE_NAME}"
 echo -e "  📋 ${BOLD}Live Logs:${NC}          journalctl -u ${SERVICE_NAME} -f"
 echo -e "  📁 ${BOLD}Install Directory:${NC}  ${INSTALL_DIR}"

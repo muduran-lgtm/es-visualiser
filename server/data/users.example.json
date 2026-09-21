@@ -3,7 +3,7 @@
     {
       "id": "usr-admin",
       "username": "admin",
-      "passwordHash": "f1e3a35ea40bcd135f653b7aebd40e4d3ed7e5307b8e16868b839528a34d8d31",
+      "passwordHash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
       "fullName": "System Administrator",
       "email": "admin@panoptext.local",
       "role": "admin",
@@ -11,6 +11,34 @@
       "preferences": {
         "theme": "dark",
         "autoLayoutOnLoad": true,
+        "confirmOnSave": false
+      }
+    },
+    {
+      "id": "usr-engineer",
+      "username": "engineer",
+      "passwordHash": "7826b958b79c70626801b880405eb5111557dadceb2fee2b1ed69a18eed0c6dc",
+      "fullName": "Lead Workflow Engineer",
+      "email": "engineer@panoptext.local",
+      "role": "editor",
+      "avatarColor": "#3274d9",
+      "preferences": {
+        "theme": "dark",
+        "autoLayoutOnLoad": false,
+        "confirmOnSave": true
+      }
+    },
+    {
+      "id": "usr-operator",
+      "username": "operator",
+      "passwordHash": "06e55b633481f7bb072957eabcf110c972e86691c3cfedabe088024bffe42f23",
+      "fullName": "SOC Operator",
+      "email": "operator@panoptext.local",
+      "role": "viewer",
+      "avatarColor": "#f04e98",
+      "preferences": {
+        "theme": "dark",
+        "autoLayoutOnLoad": false,
         "confirmOnSave": false
       }
     }

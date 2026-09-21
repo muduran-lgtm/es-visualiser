@@ -28,8 +28,14 @@ A modern, standalone, bi-directional visual (drag-and-drop) workflow editor desi
   - **Connector ID Auto-fill:** Intelligently identifies connector type (Slack, Jira, PagerDuty, etc.) and provides a valid placeholder ID.
   - **Inferred Foreach Expressions:** Scans preceding search/aggregation steps to automatically suggest exact bucket expressions (e.g. `{{ steps.top_sources.output.aggregations.by_host.buckets }}`) or hits arrays.
   - **Control Flow Scaffolding:** Fills empty `steps` or missing conditions with contextual default step skeletons.
-  - **1-Click Execution:** Apply individual fixes or resolve all workflow issues at once using the **"Fix All" (Tümünü Düzelt)** action.
+  - **1-Click Execution:** Apply individual fixes or resolve all workflow issues at once using the **"Fix All"** action.
   - **Node Inspector Integration:** Inspecting a highlighted node in the Properties panel displays its schema errors with a direct Quick Fix button.
+
+- **🧩 Step-Aware Dynamic Forms & Variable Picker (`{x}`):**
+  - **Specialized Schema Inputs:** Automatically renders dedicated parameter forms for major step types (Elasticsearch Search/Index/ES|QL, HTTP Request, Slack, Jira, PagerDuty, AI Prompts, Wait, Console).
+  - **Dynamic Catalog Fallback:** Dynamically pulls from the 445+ Kibana step catalog with required field badges and "+ Add Schema Parameter" dropdowns.
+  - **Upstream Variable Picker (`{x}`):** Discovers all predecessor steps and triggers in topological order, offering 1-click caret insertion of Liquid expressions (`{{ steps.<name>.output... }}`).
+  - **Visual Form / Raw JSON Toggle:** Seamless instant switching between structured visual controls and raw JSON editing.
 
 - **Lossless Round-Trip Guarantee (`eemeli/yaml` AST):**
   - Comments (`#`), custom formatting, top-level metadata (`consts`, `inputs`, `outputs`, `settings`), and unknown/custom steps are strictly preserved.
@@ -119,6 +125,20 @@ The script automatically:
 - Displays your server's web access URL (`https://<SERVER_IP>:5173`).
 
 > **💡 Smooth Updates:** To update an existing installation to the latest version in the future, simply re-run the same 1-line command!
+
+---
+
+## 🔐 Default Credentials (Sign In)
+
+When accessing Panoptext Visualiser for the first time, log in using any of the built-in role accounts:
+
+| Username | Password | Role | Privileges & Purpose |
+| :--- | :--- | :--- | :--- |
+| **`admin`** | **`admin`** | `admin` | Full administrator: manage workflows, cluster connections, and user accounts |
+| **`engineer`** | **`engineer`** | `editor` | Workflow engineer: create, edit, validate, and execute workflows |
+| **`operator`** | **`operator`** | `viewer` | Read-only viewer: observe live execution logs and workflow status |
+
+> 🔒 **Password & Profile Management:** After logging in, you can update your password, change preferences (themes, auto-layout defaults), or manage users via the avatar menu in the top-right corner.
 
 ---
 
