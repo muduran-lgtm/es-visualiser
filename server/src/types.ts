@@ -39,3 +39,38 @@ export interface WorkflowSaveRequest {
   yaml: string;
   expectedUpdatedAt?: string;
 }
+
+export interface StepExecutionDetail {
+  id?: string;
+  stepId: string;
+  stepType?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  startedAt?: string;
+  finishedAt?: string;
+  executionTimeMs?: number;
+  state?: any;
+  error?: any;
+}
+
+export interface WorkflowExecutionDetail {
+  id: string;
+  workflowId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  isTestRun?: boolean;
+  startedAt: string;
+  finishedAt?: string;
+  duration?: number;
+  error?: any;
+  stepExecutions: StepExecutionDetail[];
+}
+
+export interface WorkflowExecutionSummary {
+  id: string;
+  workflowId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  isTestRun?: boolean;
+  startedAt: string;
+  finishedAt?: string;
+  duration?: number;
+  error?: any;
+}

@@ -57,6 +57,41 @@ export interface WorkflowAST {
   [key: string]: any;
 }
 
+export interface StepExecutionDetail {
+  id?: string;
+  stepId: string;
+  stepType?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  startedAt?: string;
+  finishedAt?: string;
+  executionTimeMs?: number;
+  state?: any;
+  error?: any;
+}
+
+export interface WorkflowExecutionDetail {
+  id: string;
+  workflowId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  isTestRun?: boolean;
+  startedAt: string;
+  finishedAt?: string;
+  duration?: number;
+  error?: any;
+  stepExecutions: StepExecutionDetail[];
+}
+
+export interface WorkflowExecutionSummary {
+  id: string;
+  workflowId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  isTestRun?: boolean;
+  startedAt: string;
+  finishedAt?: string;
+  duration?: number;
+  error?: any;
+}
+
 export interface WorkflowNodeData {
   id: string;
   nodeCategory: 'trigger' | 'step' | 'flow-control' | 'generic';
@@ -68,6 +103,10 @@ export interface WorkflowNodeData {
   foreach?: string;
   rawYaml?: string;
   validationError?: string;
+  executionStatus?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  executionTimeMs?: number;
+  executionOutput?: any;
+  executionError?: any;
   [key: string]: any;
 }
 

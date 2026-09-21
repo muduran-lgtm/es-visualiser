@@ -274,6 +274,32 @@ async function start() {
     return await service.deleteWorkflow(id);
   });
 
+  // --- Workflow Executions & Live Monitoring ---
+  fastify.post('/api/workflows/run', async (req) => {
+    const body = req.body as { workflowId?: string; workflowYaml?: string; inputs?: Record<string, any> };
+    const service = getActiveService();
+    return await service.runWorkflow(body);
+  });
+
+  fastify.get('/api/workflows/executions/:id', async (req) => {
+    const { id } = req.params as { id: string };
+    const service = getActiveService();
+    return await service.getExecution(id);
+  });
+
+  fastify.get('/api/workflows/:workflowId/executions', async (req) => {
+    const { workflowId } = req.params as { workflowId: string };
+    const service = getActiveService();
+    return await service.listExecutions(workflowId);
+  });
+
+  fastify.post('/api/workflows/executions/:id/cancel', async (req) => {
+    const { id } = req.params as { id: string };
+    const service = getActiveService();
+    const ok = await service.cancelExecution(id);
+    return { success: ok };
+  });
+
   // --- YAML & Schema Validation Endpoints ---
   fastify.post('/api/workflows/validate', async (req) => {
     const { yaml: yamlContent } = req.body as { yaml: string };

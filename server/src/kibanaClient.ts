@@ -1,6 +1,13 @@
 import { Agent } from 'undici';
 import yaml from 'yaml';
-import { KibanaConnection, WorkflowItem, WorkflowSaveRequest } from './types.js';
+import { 
+  KibanaConnection, 
+  WorkflowItem, 
+  WorkflowSaveRequest,
+  WorkflowExecutionDetail,
+  WorkflowExecutionSummary,
+  StepExecutionDetail
+} from './types.js';
 import { INITIAL_MOCK_WORKFLOWS } from './mockData.js';
 
 export interface IWorkflowService {
@@ -9,10 +16,15 @@ export interface IWorkflowService {
   saveWorkflow(req: WorkflowSaveRequest): Promise<WorkflowItem>;
   deleteWorkflow(id: string): Promise<boolean>;
   testConnection(): Promise<{ ok: boolean; message: string; version?: string }>;
+  runWorkflow(req: { workflowId?: string; workflowYaml?: string; inputs?: Record<string, any> }): Promise<{ executionId: string }>;
+  getExecution(executionId: string): Promise<WorkflowExecutionDetail>;
+  listExecutions(workflowId: string): Promise<WorkflowExecutionSummary[]>;
+  cancelExecution(executionId: string): Promise<boolean>;
 }
 
 export class MockWorkflowService implements IWorkflowService {
   private workflows: Map<string, WorkflowItem> = new Map();
+  private executions: Map<string, WorkflowExecutionDetail> = new Map();
 
   constructor() {
     for (const item of INITIAL_MOCK_WORKFLOWS) {
@@ -73,6 +85,132 @@ export class MockWorkflowService implements IWorkflowService {
   async testConnection(): Promise<{ ok: boolean; message: string }> {
     return { ok: true, message: 'Mock environment connected successfully (3 sample workflows ready).' };
   }
+
+  async runWorkflow(req: { workflowId?: string; workflowYaml?: string; inputs?: Record<string, any> }): Promise<{ executionId: string }> {
+    const executionId = `mock-exec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const now = new Date().toISOString();
+
+    let wfYaml = req.workflowYaml;
+    if (!wfYaml && req.workflowId) {
+      const wf = this.workflows.get(req.workflowId);
+      if (wf) wfYaml = wf.yaml;
+    }
+
+    const stepList: { name: string; type: string }[] = [];
+    if (wfYaml) {
+      try {
+        const parsed = yaml.parse(wfYaml);
+        if (Array.isArray(parsed.steps)) {
+          const extract = (steps: any[]) => {
+            for (const s of steps) {
+              if (s && s.name) {
+                stepList.push({ name: s.name, type: s.type || 'step' });
+              }
+              if (Array.isArray(s.steps)) extract(s.steps);
+            }
+          };
+          extract(parsed.steps);
+        }
+      } catch {}
+    }
+
+    if (stepList.length === 0) {
+      stepList.push({ name: 'log_start', type: 'console' });
+      stepList.push({ name: 'search_records', type: 'elasticsearch.search' });
+      stepList.push({ name: 'notify_channel', type: 'console' });
+    }
+
+    const execution: WorkflowExecutionDetail = {
+      id: executionId,
+      workflowId: req.workflowId || 'mock-workflow',
+      status: 'running',
+      isTestRun: true,
+      startedAt: now,
+      stepExecutions: []
+    };
+    this.executions.set(executionId, execution);
+
+    // Asynchronous step-by-step runner simulation
+    (async () => {
+      const startTime = Date.now();
+      for (let i = 0; i < stepList.length; i++) {
+        if ((execution.status as string) === 'cancelled') break;
+
+        const s = stepList[i];
+        const stepStart = new Date().toISOString();
+
+        // 1. Mark step as running
+        execution.stepExecutions.push({
+          stepId: s.name,
+          stepType: s.type,
+          status: 'running',
+          startedAt: stepStart
+        });
+
+        // Realistic execution delay per step
+        await new Promise(r => setTimeout(r, 600));
+
+        if ((execution.status as string) === 'cancelled') break;
+
+        // 2. Mark step completed with realistic state
+        const currentStep = execution.stepExecutions[execution.stepExecutions.length - 1];
+        const duration = Math.floor(Math.random() * 35) + 12;
+        currentStep.status = 'completed';
+        currentStep.finishedAt = new Date().toISOString();
+        currentStep.executionTimeMs = duration;
+        currentStep.state = {
+          output: s.type.includes('search') 
+            ? { hits: { total: { value: 128 }, hits: [{ _id: 'doc-1', _source: { message: 'Sample event processed' } }] } }
+            : { status: 'success', message: `Step "${s.name}" executed successfully.` }
+        };
+      }
+
+      if ((execution.status as string) === 'running') {
+        execution.status = 'completed';
+        execution.finishedAt = new Date().toISOString();
+        execution.duration = Date.now() - startTime;
+      }
+    })();
+
+    return { executionId };
+  }
+
+  async getExecution(executionId: string): Promise<WorkflowExecutionDetail> {
+    const exec = this.executions.get(executionId);
+    if (!exec) {
+      throw new Error(`Execution not found (${executionId})`);
+    }
+    return { ...exec, stepExecutions: [...exec.stepExecutions] };
+  }
+
+  async listExecutions(workflowId: string): Promise<WorkflowExecutionSummary[]> {
+    const list: WorkflowExecutionSummary[] = [];
+    for (const exec of this.executions.values()) {
+      if (!workflowId || exec.workflowId === workflowId) {
+        list.push({
+          id: exec.id,
+          workflowId: exec.workflowId,
+          status: exec.status,
+          startedAt: exec.startedAt,
+          finishedAt: exec.finishedAt,
+          duration: exec.duration,
+          error: exec.error,
+          isTestRun: exec.isTestRun
+        });
+      }
+    }
+    return list.reverse();
+  }
+
+  async cancelExecution(executionId: string): Promise<boolean> {
+    const exec = this.executions.get(executionId);
+    if (exec && exec.status === 'running') {
+      exec.status = 'cancelled';
+      exec.finishedAt = new Date().toISOString();
+      return true;
+    }
+    return false;
+  }
 }
 
 export class RealKibanaService implements IWorkflowService {
@@ -110,7 +248,6 @@ export class RealKibanaService implements IWorkflowService {
   async testConnection(): Promise<{ ok: boolean; message: string; version?: string }> {
     try {
       const cleanUrl = this.conn.url.replace(/\/+$/, '');
-      // 1. First test Workflows API directly (verification of auth and access)
       const wfUrl = this.getBaseUrl();
       const wfRes = await fetch(wfUrl, {
         headers: this.getHeaders(),
@@ -129,7 +266,6 @@ export class RealKibanaService implements IWorkflowService {
         };
       }
 
-      // 2. Workflows returned error, try Kibana overall status
       const statusUrl = `${cleanUrl}/api/status`;
       const res = await fetch(statusUrl, {
         headers: this.getHeaders(),
@@ -241,17 +377,14 @@ export class RealKibanaService implements IWorkflowService {
           throw new Error(`Concurrency Conflict (409): This workflow was updated on Kibana (Kibana timestamp: ${existing.updatedAt}, your reference: ${req.expectedUpdatedAt}). Please reload before saving.`);
         }
       } catch (err: any) {
-        // If 404, it's a new workflow, ignore
         if (!err.message?.includes('404')) {
           throw err;
         }
       }
     }
 
-    // Try PUT if ID exists, or POST if new
     let res: Response;
     if (id) {
-      // Check if workflow exists or directly attempt PUT
       const putUrl = `${this.getBaseUrl()}/workflow/${encodeURIComponent(id)}`;
       res = await fetch(putUrl, {
         method: 'PUT',
@@ -267,7 +400,6 @@ export class RealKibanaService implements IWorkflowService {
         dispatcher: this.dispatcher
       });
 
-      // If 404, fallback to POST /api/workflows/workflow
       if (res.status === 404) {
         const postUrl = `${this.getBaseUrl()}/workflow`;
         res = await fetch(postUrl, {
@@ -301,7 +433,7 @@ export class RealKibanaService implements IWorkflowService {
         const parsed = JSON.parse(errText);
         errorMsg = parsed.message || parsed.error || errText;
       } catch {}
-      throw new Error(`Kibana Validation/Save Error (${res.status}): ${errorMsg}`);
+      throw new Error(`Kibana save error (${res.status}): ${errorMsg}`);
     }
 
     const saved = await res.json() as any;
@@ -331,5 +463,135 @@ export class RealKibanaService implements IWorkflowService {
       throw new Error(`Failed to delete workflow (${id}): ${text}`);
     }
     return true;
+  }
+
+  async runWorkflow(req: { workflowId?: string; workflowYaml?: string; inputs?: Record<string, any> }): Promise<{ executionId: string }> {
+    const testUrl = `${this.getBaseUrl()}/test`;
+    const payload: any = {
+      inputs: req.inputs || {}
+    };
+    if (req.workflowId) payload.workflowId = req.workflowId;
+    if (req.workflowYaml) payload.workflowYaml = req.workflowYaml;
+
+    let res = await fetch(testUrl, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+      // @ts-ignore
+      dispatcher: this.dispatcher
+    });
+
+    if (res.ok) {
+      const data = await res.json() as any;
+      const executionId = data.workflowExecutionId || data.executionId || data.id;
+      if (executionId) {
+        return { executionId };
+      }
+    }
+
+    if (req.workflowId) {
+      const runUrl = `${this.getBaseUrl()}/workflow/${encodeURIComponent(req.workflowId)}/run`;
+      res = await fetch(runUrl, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ inputs: req.inputs || {} }),
+        // @ts-ignore
+        dispatcher: this.dispatcher
+      });
+
+      if (res.ok) {
+        const data = await res.json() as any;
+        const executionId = data.workflowExecutionId || data.executionId || data.id;
+        if (executionId) {
+          return { executionId };
+        }
+      }
+    }
+
+    const errText = await res.text();
+    let msg = errText;
+    try {
+      const parsed = JSON.parse(errText);
+      msg = parsed.message || parsed.error || errText;
+    } catch {}
+    throw new Error(`Failed to trigger workflow execution: ${msg}`);
+  }
+
+  async getExecution(executionId: string): Promise<WorkflowExecutionDetail> {
+    const url = `${this.getBaseUrl()}/executions/${encodeURIComponent(executionId)}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: this.getHeaders(),
+      // @ts-ignore
+      dispatcher: this.dispatcher
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Failed to fetch execution (${executionId}): ${text}`);
+    }
+
+    const data = await res.json() as any;
+    const rawSteps = Array.isArray(data.stepExecutions) ? data.stepExecutions : [];
+
+    return {
+      id: data.id || executionId,
+      workflowId: data.workflowId || '',
+      status: data.status || 'running',
+      isTestRun: data.isTestRun,
+      startedAt: data.startedAt || new Date().toISOString(),
+      finishedAt: data.finishedAt,
+      duration: data.duration,
+      error: data.error,
+      stepExecutions: rawSteps.map((s: any) => ({
+        id: s.id,
+        stepId: s.stepId,
+        stepType: s.stepType,
+        status: s.status,
+        startedAt: s.startedAt,
+        finishedAt: s.finishedAt,
+        executionTimeMs: s.executionTimeMs,
+        state: s.state,
+        error: s.error
+      }))
+    };
+  }
+
+  async listExecutions(workflowId: string): Promise<WorkflowExecutionSummary[]> {
+    const url = `${this.getBaseUrl()}/workflow/${encodeURIComponent(workflowId)}/executions`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: this.getHeaders(),
+      // @ts-ignore
+      dispatcher: this.dispatcher
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const data = await res.json() as any;
+    const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
+    return list.map((item: any) => ({
+      id: item.id,
+      workflowId: item.workflowId || workflowId,
+      status: item.status,
+      isTestRun: item.isTestRun,
+      startedAt: item.startedAt,
+      finishedAt: item.finishedAt,
+      duration: item.duration,
+      error: item.error
+    }));
+  }
+
+  async cancelExecution(executionId: string): Promise<boolean> {
+    const url = `${this.getBaseUrl()}/executions/${encodeURIComponent(executionId)}/cancel`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      // @ts-ignore
+      dispatcher: this.dispatcher
+    });
+    return res.ok;
   }
 }

@@ -6,7 +6,7 @@ import { linter, Diagnostic } from '@codemirror/lint';
 import yaml from 'yaml';
 import { 
   ChevronUp, ChevronDown, AlertCircle, CheckCircle2, 
-  Copy, Check, AlertTriangle, X, Sparkles, Wand2, Lightbulb 
+  Copy, Check, AlertTriangle, X, Sparkles, Wand2, Lightbulb, Terminal
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.js';
 import { 
@@ -21,12 +21,16 @@ interface YamlEditorProps {
   value: string;
   onChange: (newValue: string, origin: 'yaml') => void;
   externalError?: string | null;
+  onSwitchToExecution?: () => void;
+  isRunning?: boolean;
 }
 
 export const YamlEditor: React.FC<YamlEditorProps> = ({
   value,
   onChange,
-  externalError
+  externalError,
+  onSwitchToExecution,
+  isRunning
 }) => {
   const { isDarkTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -184,6 +188,25 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
           }`}>
             YAML Source (Bi-directional Sync)
           </span>
+
+          {onSwitchToExecution && (
+            <button
+              type="button"
+              onClick={onSwitchToExecution}
+              className={`flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded transition-all border ${
+                isRunning
+                  ? 'bg-sky-500/20 text-sky-400 border-sky-500/40 animate-pulse font-bold'
+                  : isDarkTheme
+                    ? 'bg-[#232634] text-neutral-300 hover:text-white hover:bg-[#2e3245] border-[#363a4c]'
+                    : 'bg-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-300 border-slate-300 font-medium'
+              }`}
+              title="Canlı çalıştırma ve izleme paneline geç"
+            >
+              <Terminal size={12} className={isRunning ? 'text-sky-400 animate-spin' : 'text-[#00bfb3]'} />
+              <span>Live Monitor</span>
+              {isRunning && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />}
+            </button>
+          )}
 
           {/* Validation Status Indicator */}
           {hasValidationErrors ? (

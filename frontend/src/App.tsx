@@ -8,6 +8,7 @@ import { YamlEditor } from './components/YamlEditor.js';
 import { DiffModal } from './components/DiffModal.js';
 import { SettingsDrawer } from './components/SettingsDrawer.js';
 import { LeftSettingsDrawer } from './components/LeftSettingsDrawer.js';
+import { ExecutionDrawer } from './components/ExecutionDrawer.js';
 import { LoginScreen } from './components/LoginScreen.js';
 import { ChangePasswordModal } from './components/ChangePasswordModal.js';
 import { NotificationToast } from './components/NotificationToast.js';
@@ -22,7 +23,11 @@ import {
   testConnectionApi,
   fetchWorkflows,
   fetchWorkflow,
-  saveWorkflowApi
+  saveWorkflowApi,
+  runWorkflowApi,
+  fetchExecutionApi,
+  fetchWorkflowExecutionsApi,
+  cancelExecutionApi
 } from './services/api.js';
 import { 
   getStoredToken,
@@ -32,7 +37,7 @@ import {
   fetchCurrentUserApi
 } from './services/auth.js';
 import { useTheme } from './context/ThemeContext.js';
-import { CustomNode, ClientConnectionSummary, WorkflowSummary, WorkflowNodeData, UserProfile } from './types.js';
+import { CustomNode, ClientConnectionSummary, WorkflowSummary, WorkflowNodeData, UserProfile, WorkflowExecutionDetail, WorkflowExecutionSummary } from './types.js';
 
 export const App: React.FC = () => {
   // --- Auth & User State ---
@@ -65,6 +70,12 @@ export const App: React.FC = () => {
   const [isDiffOpen, setIsDiffOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // --- Live Execution Monitoring State ---
+  const [activeExecution, setActiveExecution] = useState<WorkflowExecutionDetail | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [executionHistory, setExecutionHistory] = useState<WorkflowExecutionSummary[]>([]);
+  const [activeBottomTab, setActiveBottomTab] = useState<'yaml' | 'execution'>('yaml');
 
   const canvasDebounceTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -129,6 +140,18 @@ export const App: React.FC = () => {
     setIsPasswordModalOpen(false);
   };
 
+  // Load execution history for a workflow
+  const loadExecutionHistory = useCallback(async (wfId?: string) => {
+    const id = wfId || currentWorkflowId;
+    if (!id) return;
+    try {
+      const history = await fetchWorkflowExecutionsApi(id);
+      setExecutionHistory(history);
+    } catch (err: any) {
+      console.error('Failed to load execution history:', err);
+    }
+  }, [currentWorkflowId]);
+
   // Select a workflow by ID
   const selectWorkflowById = async (id: string) => {
     try {
@@ -138,6 +161,10 @@ export const App: React.FC = () => {
       setWorkflowEnabled(wf.enabled);
       setOriginalYaml(wf.yaml);
       setYamlContent(wf.yaml);
+
+      // Reset active execution and fetch past executions
+      setActiveExecution(null);
+      loadExecutionHistory(wf.id);
 
       // Validate Workflow against Schema
       const valResult = validateWorkflowYaml(wf.yaml);
@@ -396,6 +423,8 @@ export const App: React.FC = () => {
     setNodes(layouted.nodes);
     setEdges(layouted.edges);
     setSelectedNodeId(null);
+    setActiveExecution(null);
+    setExecutionHistory([]);
   };
 
   // Download YAML
@@ -408,6 +437,140 @@ export const App: React.FC = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // --- Live Execution Actions & Polling ---
+  const handleTriggerRun = async () => {
+    if (!currentWorkflowId) {
+      setNotification({ type: 'error', message: 'Please select or save a workflow before running.' });
+      return;
+    }
+
+    try {
+      setIsRunning(true);
+      setActiveBottomTab('execution');
+      setNotification({ type: 'success', message: 'Starting live workflow execution test...' });
+
+      // Clear previous execution statuses from nodes
+      setNodes(nds => nds.map(n => ({
+        ...n,
+        data: {
+          ...n.data,
+          executionStatus: undefined,
+          executionTimeMs: undefined,
+          executionOutput: undefined,
+          executionError: undefined
+        }
+      })));
+
+      const runRes = await runWorkflowApi({
+        workflowId: currentWorkflowId,
+        workflowYaml: yamlContent
+      });
+
+      setActiveExecution({
+        id: runRes.executionId,
+        workflowId: currentWorkflowId,
+        status: 'running',
+        startedAt: new Date().toISOString(),
+        stepExecutions: []
+      });
+    } catch (err: any) {
+      setIsRunning(false);
+      setNotification({ type: 'error', message: `Execution failed to start: ${err.message}` });
+    }
+  };
+
+  const handleCancelRun = async () => {
+    if (!activeExecution?.id) return;
+    try {
+      await cancelExecutionApi(activeExecution.id);
+      setIsRunning(false);
+      setActiveExecution(prev => prev ? { ...prev, status: 'cancelled' } : null);
+      setNotification({ type: 'success', message: 'Workflow execution cancelled.' });
+    } catch (err: any) {
+      setNotification({ type: 'error', message: `Cancel error: ${err.message}` });
+    }
+  };
+
+  const selectExecutionById = async (execId: string) => {
+    try {
+      const detail = await fetchExecutionApi(execId);
+      setActiveExecution(detail);
+
+      // Reflect selected run onto canvas nodes
+      setNodes(nds => nds.map(node => {
+        const stepExec = detail.stepExecutions.find(s => s.stepId === node.data.name);
+        if (stepExec) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              executionStatus: stepExec.status,
+              executionTimeMs: stepExec.executionTimeMs,
+              executionOutput: stepExec.state,
+              executionError: stepExec.error
+            }
+          };
+        }
+        return node;
+      }));
+    } catch (err: any) {
+      setNotification({ type: 'error', message: `Could not load execution detail: ${err.message}` });
+    }
+  };
+
+  // Poll active execution every 800ms
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isRunning && activeExecution?.id) {
+      interval = setInterval(async () => {
+        try {
+          const detail = await fetchExecutionApi(activeExecution.id);
+          setActiveExecution(detail);
+
+          // Update canvas nodes with latest step execution states
+          setNodes(nds => nds.map(node => {
+            const stepExec = detail.stepExecutions.find(s => s.stepId === node.data.name);
+            if (stepExec) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  executionStatus: stepExec.status,
+                  executionTimeMs: stepExec.executionTimeMs,
+                  executionOutput: stepExec.state,
+                  executionError: stepExec.error
+                }
+              };
+            }
+            return node;
+          }));
+
+          if (detail.status === 'completed' || detail.status === 'failed' || detail.status === 'cancelled') {
+            setIsRunning(false);
+            loadExecutionHistory();
+            if (detail.status === 'completed') {
+              setNotification({ 
+                type: 'success', 
+                message: `Workflow completed successfully (${detail.duration ? `${(detail.duration / 1000).toFixed(1)}s` : 'Done'})` 
+              });
+            } else if (detail.status === 'failed') {
+              setNotification({ 
+                type: 'error', 
+                message: 'Workflow execution failed. Inspect step outputs for details.' 
+              });
+            }
+          }
+        } catch (err: any) {
+          console.error('Execution poll error:', err);
+        }
+      }, 800);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, activeExecution?.id, loadExecutionHistory]);
 
   // Keyboard Shortcuts (Ctrl+S, Ctrl+D)
   useEffect(() => {
@@ -457,6 +620,11 @@ export const App: React.FC = () => {
           validationErrorsCount={validationErrors.length}
           activeConnection={activeConnection}
           currentUser={currentUser}
+          isRunning={isRunning}
+          isExecutionDrawerOpen={activeBottomTab === 'execution'}
+          onTriggerRun={handleTriggerRun}
+          onCancelRun={handleCancelRun}
+          onToggleExecutionDrawer={() => setActiveBottomTab(t => t === 'execution' ? 'yaml' : 'execution')}
           onOpenUserSettings={() => setIsUserSettingsOpen(true)}
           onOpenConnections={() => setIsConnectionsOpen(true)}
           onSelectWorkflow={selectWorkflowById}
@@ -517,11 +685,29 @@ export const App: React.FC = () => {
           />
         </div>
 
-        {/* Bottom Panel: YAML Editor */}
-        <YamlEditor
-          value={yamlContent}
-          onChange={handleYamlChange}
-        />
+        {/* Bottom Panel: YAML Editor or Live Execution Monitor */}
+        {activeBottomTab === 'yaml' ? (
+          <YamlEditor
+            value={yamlContent}
+            onChange={handleYamlChange}
+            onSwitchToExecution={() => setActiveBottomTab('execution')}
+            isRunning={isRunning}
+          />
+        ) : (
+          <ExecutionDrawer
+            currentWorkflowId={currentWorkflowId}
+            workflowName={workflowName}
+            activeExecution={activeExecution}
+            isRunning={isRunning}
+            onTriggerRun={handleTriggerRun}
+            onCancelRun={handleCancelRun}
+            onSelectExecution={selectExecutionById}
+            executionHistory={executionHistory}
+            onRefreshHistory={() => loadExecutionHistory()}
+            onSelectStepNode={(stepName) => setSelectedNodeId(stepName)}
+            onSwitchToYaml={() => setActiveBottomTab('yaml')}
+          />
+        )}
 
         {/* Cluster Inventory & Integrations Drawer (Opened via Connection Pill) */}
         <SettingsDrawer

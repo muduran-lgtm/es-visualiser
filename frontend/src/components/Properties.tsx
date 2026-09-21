@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Info, AlertTriangle, Sparkles, Wand2, Lightbulb } from 'lucide-react';
+import { 
+  Trash2, Info, AlertTriangle, Sparkles, Wand2, Lightbulb,
+  CheckCircle2, XCircle, Clock, Loader2, Copy, Check, Terminal 
+} from 'lucide-react';
 import { CustomNode, WorkflowNodeData } from '../types.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { ValidationError, QuickFix } from '../services/validator.js';
@@ -30,6 +33,7 @@ export const Properties: React.FC<PropertiesProps> = ({
   const [formData, setFormData] = useState<Partial<WorkflowNodeData>>({});
   const [rawWithJson, setRawWithJson] = useState('');
   const [rawJsonError, setRawJsonError] = useState<string | null>(null);
+  const [outputCopied, setOutputCopied] = useState(false);
 
   useEffect(() => {
     if (selectedNode) {
@@ -152,6 +156,68 @@ export const Properties: React.FC<PropertiesProps> = ({
 
       {/* Form Content */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
+        {/* Live Execution Results Card */}
+        {nodeData.executionStatus && (
+          <div className={`p-3 rounded-lg border space-y-2 ${
+            nodeData.executionStatus === 'completed'
+              ? isDarkTheme ? 'bg-[#15231e] border-emerald-800/60' : 'bg-emerald-50 border-emerald-200'
+              : nodeData.executionStatus === 'failed'
+                ? isDarkTheme ? 'bg-[#26151a] border-rose-800/60' : 'bg-rose-50 border-rose-200'
+                : isDarkTheme ? 'bg-[#151c27] border-sky-800/60' : 'bg-sky-50 border-sky-200'
+          }`}>
+            <div className="flex items-center justify-between pb-1.5 border-b border-neutral-700/30">
+              <div className="flex items-center gap-1.5 font-bold text-xs">
+                {nodeData.executionStatus === 'running' && <Loader2 size={13} className="animate-spin text-sky-400" />}
+                {nodeData.executionStatus === 'completed' && <CheckCircle2 size={13} className="text-emerald-400" />}
+                {nodeData.executionStatus === 'failed' && <XCircle size={13} className="text-rose-400" />}
+                <span className={
+                  nodeData.executionStatus === 'completed' ? 'text-emerald-400' :
+                  nodeData.executionStatus === 'failed' ? 'text-rose-400' : 'text-sky-400'
+                }>
+                  Execution: {nodeData.executionStatus.toUpperCase()}
+                </span>
+              </div>
+              {nodeData.executionTimeMs !== undefined && (
+                <span className="font-mono text-[11px] text-neutral-400">
+                  {nodeData.executionTimeMs} ms
+                </span>
+              )}
+            </div>
+
+            {nodeData.executionError && (
+              <div className="p-2 rounded bg-rose-950/60 border border-rose-900/60 text-rose-300 font-mono text-[11px] break-words">
+                <div className="font-bold text-[10px] text-rose-400 uppercase">Error:</div>
+                <div>{typeof nodeData.executionError === 'object' ? JSON.stringify(nodeData.executionError, null, 2) : String(nodeData.executionError)}</div>
+              </div>
+            )}
+
+            {nodeData.executionOutput && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase text-neutral-400">
+                  <span>Output State:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(nodeData.executionOutput, null, 2));
+                      setOutputCopied(true);
+                      setTimeout(() => setOutputCopied(false), 1500);
+                    }}
+                    className="flex items-center gap-1 text-[10px] hover:text-white transition-colors"
+                  >
+                    {outputCopied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
+                    <span>{outputCopied ? 'Kopyalandı' : 'Kopyala'}</span>
+                  </button>
+                </div>
+                <pre className={`p-2 rounded font-mono text-[10px] max-h-36 overflow-auto border leading-relaxed ${
+                  isDarkTheme ? 'bg-[#0d0f14] border-[#1e2330] text-emerald-300' : 'bg-white border-slate-200 text-slate-800'
+                }`}>
+                  {JSON.stringify(nodeData.executionOutput, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Smart Schema Suggestion & Quick Fix Card */}
         {nodeErrors.length > 0 && (
           <div className={`p-3 rounded-lg border space-y-2.5 ${

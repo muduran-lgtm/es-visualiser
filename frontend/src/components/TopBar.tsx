@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Menu, Save, RotateCcw, LayoutTemplate, 
   GitCommit, Download, Plus,
-  ChevronDown, Sun, Moon, Key, LogOut, Shield, AlertTriangle
+  ChevronDown, Sun, Moon, Key, LogOut, Shield, AlertTriangle,
+  Play, Square, Activity, Loader2
 } from 'lucide-react';
 import { WorkflowSummary, ClientConnectionSummary, UserProfile } from '../types.js';
 import { ThemeSwitch } from './ThemeSwitch.js';
@@ -18,6 +19,11 @@ interface TopBarProps {
   validationErrorsCount?: number;
   activeConnection: ClientConnectionSummary | null;
   currentUser: UserProfile | null;
+  isRunning?: boolean;
+  isExecutionDrawerOpen?: boolean;
+  onTriggerRun?: () => void;
+  onCancelRun?: () => void;
+  onToggleExecutionDrawer?: () => void;
   onOpenUserSettings: () => void;
   onOpenConnections: () => void;
   onSelectWorkflow: (id: string) => void;
@@ -57,7 +63,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   onNewWorkflow,
   onDownloadYaml,
   onLogout,
-  onChangePassword
+  onChangePassword,
+  isRunning = false,
+  isExecutionDrawerOpen = false,
+  onTriggerRun,
+  onCancelRun,
+  onToggleExecutionDrawer
 }) => {
   const { isDarkTheme } = useTheme();
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
@@ -322,6 +333,49 @@ export const TopBar: React.FC<TopBarProps> = ({
           <Save size={13} />
           <span>{isSaving ? 'Saving...' : 'Save'}</span>
         </button>
+
+        {/* Run / Stop Button */}
+        {isRunning ? (
+          <button
+            onClick={onCancelRun}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm animate-pulse cursor-pointer"
+            title="Çalışan workflow testini iptal et / durdur"
+          >
+            <Square size={12} className="fill-current" />
+            <span>Stop</span>
+          </button>
+        ) : (
+          <button
+            onClick={onTriggerRun}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+            title="Workflow'u Kibana üzerinde canlı çalıştır ve izle"
+          >
+            <Play size={12} className="fill-current" />
+            <span>Run</span>
+          </button>
+        )}
+
+        {/* Live Execution Monitor Toggle */}
+        {onToggleExecutionDrawer && (
+          <button
+            onClick={onToggleExecutionDrawer}
+            className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded transition-colors border ${
+              isExecutionDrawerOpen
+                ? 'bg-[#00bfb3]/20 border-[#00bfb3]/60 text-[#00bfb3]'
+                : isDarkTheme
+                  ? 'text-neutral-300 bg-[#20222b] hover:bg-[#272a37] border-[#2d3139]'
+                  : 'text-slate-700 bg-slate-100 hover:bg-slate-200 border-slate-300'
+            }`}
+            title="Canlı İzleme Panelini Aç/Kapat"
+          >
+            {isRunning ? (
+              <Loader2 size={13} className="animate-spin text-sky-400" />
+            ) : (
+              <Activity size={13} />
+            )}
+            <span>Monitor</span>
+          </button>
+        )}
 
         {/* Divider */}
         <div className={`h-4 w-[1px] ${isDarkTheme ? 'bg-[#2d3139]' : 'bg-slate-300'} mx-1`} />

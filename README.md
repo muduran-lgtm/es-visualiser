@@ -45,6 +45,13 @@ A modern, standalone, bi-directional visual (drag-and-drop) workflow editor desi
   - Visual Diff Modal comparing current changes against the live Kibana definition before saving.
   - Concurrency conflict detection (HTTP 409) based on `updatedAt` timestamps.
 
+- **⚡ Live Execution & Real-Time Monitoring:**
+  - **1-Click Test Execution:** Run workflows directly against live Kibana (`/api/workflows/test`) or simulated in Mock mode with `▶ Run / Test`.
+  - **Dynamic Canvas Feedback:** Nodes glow with animated blue borders and spinning indicators while running, transition to green with millisecond duration badges upon completion, or display clear error indicators on failure.
+  - **Interactive Execution Drawer:** Collapsible bottom drawer providing an elapsed timer, step timeline, structured JSON output inspector, 1-click clipboard copying, and error traces.
+  - **Execution History:** Browse past runs, review step executions, and jump to historical outputs with one click.
+  - **Sidebar Node Integration:** Selecting any executed node in the Properties panel displays its individual execution status, timing, and full JSON state.
+
 - **Responsive Theme Support:**
   - Dark and light themes tailored to the Kibana Elastic UI (EUI) design system.
 

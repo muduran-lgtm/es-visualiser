@@ -1,4 +1,9 @@
-import { ClientConnectionSummary, WorkflowSummary } from '../types.js';
+import { 
+  ClientConnectionSummary, 
+  WorkflowSummary, 
+  WorkflowExecutionDetail, 
+  WorkflowExecutionSummary 
+} from '../types.js';
 
 const API_BASE = '/api';
 
@@ -96,4 +101,54 @@ export async function saveWorkflowApi(req: {
   }
 
   return await res.json();
+}
+
+// --- Live Execution & Monitoring APIs ---
+
+export async function runWorkflowApi(req: {
+  workflowId?: string;
+  workflowYaml?: string;
+  inputs?: Record<string, any>;
+}): Promise<{ executionId: string }> {
+  const res = await fetch(`${API_BASE}/workflows/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    let msg = text;
+    try {
+      const parsed = JSON.parse(text);
+      msg = parsed.message || parsed.error || text;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  return await res.json();
+}
+
+export async function fetchExecutionApi(executionId: string): Promise<WorkflowExecutionDetail> {
+  const res = await fetch(`${API_BASE}/workflows/executions/${encodeURIComponent(executionId)}`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Failed to fetch execution (${executionId}).`);
+  }
+  return await res.json();
+}
+
+export async function fetchWorkflowExecutionsApi(workflowId: string): Promise<WorkflowExecutionSummary[]> {
+  const res = await fetch(`${API_BASE}/workflows/${encodeURIComponent(workflowId)}/executions`);
+  if (!res.ok) {
+    return [];
+  }
+  return await res.json();
+}
+
+export async function cancelExecutionApi(executionId: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/workflows/executions/${encodeURIComponent(executionId)}/cancel`, {
+    method: 'POST'
+  });
+  return res.ok;
 }
