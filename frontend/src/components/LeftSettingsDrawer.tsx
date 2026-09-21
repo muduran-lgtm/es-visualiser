@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Settings, Users, ChevronDown, ChevronRight, 
   Plus, Pencil, Trash2, Shield, Sliders, Eye, 
-  AlertCircle, RefreshCw
+  AlertCircle, RefreshCw, UserCheck, UserX
 } from 'lucide-react';
 import { UserProfile } from '../types.js';
-import { listUsersApi, createUserApi, updateUserApi, deleteUserApi } from '../services/auth.js';
+import { listUsersApi, createUserApi, updateUserApi, deleteUserApi, toggleUserStatusApi } from '../services/auth.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { PanoptextEyeLogo } from './PanoptextEyeLogo.js';
 
@@ -39,6 +39,7 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
   const [formEmail, setFormEmail] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formRole, setFormRole] = useState<'admin' | 'editor' | 'viewer'>('editor');
+  const [formEnabled, setFormEnabled] = useState(true);
   const [formSaving, setFormSaving] = useState(false);
 
   const loadUsers = async () => {
@@ -69,6 +70,7 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
     setFormEmail('');
     setFormPassword('');
     setFormRole('editor');
+    setFormEnabled(true);
     setIsFormOpen(true);
     setError(null);
   };
@@ -80,6 +82,7 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
     setFormEmail(u.email);
     setFormPassword(''); // blank means keep existing
     setFormRole(u.role);
+    setFormEnabled(u.enabled !== false);
     setIsFormOpen(true);
     setError(null);
   };
@@ -95,6 +98,7 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
           fullName: formFullName,
           email: formEmail,
           role: formRole,
+          enabled: formEnabled,
           newPassword: formPassword || undefined
         });
       } else {
@@ -107,7 +111,8 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
           password: formPassword,
           fullName: formFullName,
           email: formEmail,
-          role: formRole
+          role: formRole,
+          enabled: formEnabled
         });
       }
       setIsFormOpen(false);
@@ -116,6 +121,25 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
       setError(err.message || 'Failed to save user');
     } finally {
       setFormSaving(false);
+    }
+  };
+
+  const handleToggleStatus = async (u: UserProfile) => {
+    if (u.id === currentUserId && u.enabled !== false) {
+      alert('You cannot disable your own account.');
+      return;
+    }
+    const targetStatus = u.enabled === false ? true : false;
+    const actionName = targetStatus ? 'enable' : 'disable';
+    if (!confirm(`Are you sure you want to ${actionName} user "${u.fullName}" (@${u.username})?`)) {
+      return;
+    }
+
+    try {
+      await toggleUserStatusApi(u.id, targetStatus);
+      await loadUsers();
+    } catch (err: any) {
+      alert(err.message || `Failed to ${actionName} user`);
     }
   };
 
@@ -381,18 +405,49 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
                       </select>
                     </div>
 
+                    <div>
+                      <label className={`text-[10px] uppercase font-semibold block mb-1 ${isDarkTheme ? 'text-neutral-400' : 'text-slate-600'}`}>
+                        Account Status
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setFormEnabled(!formEnabled)}
+                        className={`flex items-center justify-between w-full px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+                          formEnabled
+                            ? isDarkTheme
+                              ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-400'
+                              : 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                            : isDarkTheme
+                              ? 'bg-rose-950/30 border-rose-800/60 text-rose-400'
+                              : 'bg-rose-50 border-rose-300 text-rose-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {formEnabled ? <UserCheck size={14} /> : <UserX size={14} />}
+                          <span>{formEnabled ? 'Enabled (User can log in)' : 'Disabled (Login blocked)'}</span>
+                        </div>
+                        <div className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
+                          formEnabled ? 'bg-emerald-600' : isDarkTheme ? 'bg-neutral-700' : 'bg-slate-300'
+                        }`}>
+                          <div className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                            formEnabled ? 'translate-x-4' : 'translate-x-0'
+                          }`} />
+                        </div>
+                      </button>
+                    </div>
+
                     <div className={`flex justify-end gap-2 pt-2 border-t ${isDarkTheme ? 'border-[#2d3139]' : 'border-slate-200'}`}>
                       <button
                         type="button"
                         onClick={() => setIsFormOpen(false)}
-                        className={`px-3 py-1 text-xs rounded ${isDarkTheme ? 'text-neutral-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                        className={`px-3 py-1 text-xs rounded cursor-pointer ${isDarkTheme ? 'text-neutral-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={formSaving}
-                        className="px-4 py-1.5 bg-[#00bfb3] hover:bg-[#00a89d] text-black font-bold text-xs rounded transition-colors shadow disabled:opacity-50"
+                        className="px-4 py-1.5 bg-[#00bfb3] hover:bg-[#00a89d] text-black font-bold text-xs rounded transition-colors shadow disabled:opacity-50 cursor-pointer"
                       >
                         {formSaving ? 'Saving...' : editingUserId ? 'Update User' : 'Create User'}
                       </button>
@@ -415,10 +470,13 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
                 ) : (
                   users.map((u) => {
                     const isSelf = u.id === currentUserId;
+                    const isEnabled = u.enabled !== false;
                     return (
                       <div
                         key={u.id}
                         className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+                          !isEnabled ? 'opacity-70 border-dashed' : ''
+                        } ${
                           isSelf 
                             ? isDarkTheme 
                               ? 'bg-[#1e222d] border-[#00bfb3]/60' 
@@ -430,15 +488,24 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 shadow"
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 shadow relative ${
+                              !isEnabled ? 'grayscale opacity-75' : ''
+                            }`}
                             style={{ backgroundColor: u.avatarColor || '#00bfb3' }}
                           >
                             {u.fullName.charAt(0).toUpperCase()}
+                            {/* Status Indicator Dot */}
+                            <span 
+                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ${
+                                isDarkTheme ? 'ring-[#1a1c24]' : 'ring-white'
+                              } ${isEnabled ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                              title={isEnabled ? 'Account Enabled' : 'Account Disabled'}
+                            />
                           </div>
 
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-xs font-bold truncate ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-xs font-bold truncate ${!isEnabled ? 'line-through opacity-75' : ''} ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
                                 {u.fullName}
                               </span>
                               {isSelf && (
@@ -449,6 +516,20 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
                                 </span>
                               )}
                               {getRoleBadge(u.role)}
+                              {/* Status Badge */}
+                              {isEnabled ? (
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 border ${
+                                  isDarkTheme ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/40' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                }`}>
+                                  <UserCheck size={9} /> Active
+                                </span>
+                              ) : (
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 border ${
+                                  isDarkTheme ? 'bg-rose-950/60 text-rose-400 border-rose-800/50' : 'bg-rose-50 text-rose-700 border-rose-300'
+                                }`}>
+                                  <UserX size={9} /> Disabled
+                                </span>
+                              )}
                             </div>
                             <div className={`text-[11px] font-mono mt-0.5 truncate ${isDarkTheme ? 'text-neutral-400' : 'text-slate-500'}`}>
                               @{u.username} {u.email && `• ${u.email}`}
@@ -458,9 +539,32 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
 
                         {/* Action buttons */}
                         <div className="flex items-center gap-1 shrink-0 ml-2">
+                          {/* Toggle Status Button */}
+                          <button
+                            onClick={() => handleToggleStatus(u)}
+                            disabled={isSelf && isEnabled}
+                            className={`p-1.5 rounded transition-colors ${
+                              isSelf && isEnabled
+                                ? isDarkTheme ? 'text-neutral-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed'
+                                : isEnabled
+                                  ? isDarkTheme ? 'text-neutral-400 hover:text-amber-400 hover:bg-amber-950/40 cursor-pointer' : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer'
+                                  : isDarkTheme ? 'text-rose-400 hover:text-emerald-400 hover:bg-emerald-950/40 cursor-pointer' : 'text-rose-600 hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer'
+                            }`}
+                            title={
+                              isSelf && isEnabled
+                                ? 'Cannot disable your own account'
+                                : isEnabled
+                                  ? 'Disable User Account'
+                                  : 'Enable User Account'
+                            }
+                          >
+                            {isEnabled ? <UserX size={13} /> : <UserCheck size={13} className="text-emerald-500" />}
+                          </button>
+
+                          {/* Edit Button */}
                           <button
                             onClick={() => handleOpenEditForm(u)}
-                            className={`p-1.5 rounded transition-colors ${
+                            className={`p-1.5 rounded transition-colors cursor-pointer ${
                               isDarkTheme 
                                 ? 'text-neutral-400 hover:text-white hover:bg-[#252834]' 
                                 : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100'
@@ -469,13 +573,15 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
                           >
                             <Pencil size={13} />
                           </button>
+
+                          {/* Delete Button */}
                           <button
                             onClick={() => handleDeleteUser(u)}
                             disabled={isSelf}
                             className={`p-1.5 rounded transition-colors ${
                               isSelf
                                 ? isDarkTheme ? 'text-neutral-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed'
-                                : isDarkTheme ? 'text-neutral-400 hover:text-rose-400 hover:bg-rose-950/40' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                : isDarkTheme ? 'text-neutral-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer'
                             }`}
                             title={isSelf ? 'Cannot delete your own account' : 'Delete User'}
                           >

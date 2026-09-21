@@ -8,6 +8,7 @@
       "email": "admin@panoptext.local",
       "role": "admin",
       "avatarColor": "#00bfb3",
+      "enabled": true,
       "preferences": {
         "theme": "dark",
         "autoLayoutOnLoad": true,
@@ -22,6 +23,7 @@
       "email": "engineer@panoptext.local",
       "role": "editor",
       "avatarColor": "#3274d9",
+      "enabled": true,
       "preferences": {
         "theme": "dark",
         "autoLayoutOnLoad": false,
@@ -36,6 +38,7 @@
       "email": "operator@panoptext.local",
       "role": "viewer",
       "avatarColor": "#f04e98",
+      "enabled": true,
       "preferences": {
         "theme": "dark",
         "autoLayoutOnLoad": false,

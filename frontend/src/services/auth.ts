@@ -141,6 +141,7 @@ export async function createUserApi(userData: {
   fullName: string;
   email: string;
   role: 'admin' | 'editor' | 'viewer';
+  enabled?: boolean;
 }): Promise<UserProfile> {
   const token = getStoredToken();
   const res = await fetch('/api/users', {
@@ -163,6 +164,7 @@ export async function updateUserApi(id: string, updates: {
   fullName?: string;
   email?: string;
   role?: 'admin' | 'editor' | 'viewer';
+  enabled?: boolean;
   newPassword?: string;
 }): Promise<UserProfile> {
   const token = getStoredToken();
@@ -178,6 +180,24 @@ export async function updateUserApi(id: string, updates: {
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.error || 'Failed to update user');
+  }
+  return data.user;
+}
+
+export async function toggleUserStatusApi(id: string, enabled: boolean): Promise<UserProfile> {
+  const token = getStoredToken();
+  const res = await fetch(`/api/users/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token || ''}`
+    },
+    body: JSON.stringify({ enabled })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update user status');
   }
   return data.user;
 }

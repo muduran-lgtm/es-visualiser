@@ -10,6 +10,7 @@ export interface UserAccount {
   email: string;
   role: 'admin' | 'editor' | 'viewer';
   avatarColor: string;
+  enabled: boolean;
   preferences: {
     theme: string;
     autoLayoutOnLoad: boolean;
@@ -24,6 +25,7 @@ export interface UserPublicProfile {
   email: string;
   role: 'admin' | 'editor' | 'viewer';
   avatarColor: string;
+  enabled: boolean;
   preferences: {
     theme: string;
     autoLayoutOnLoad: boolean;
@@ -65,6 +67,7 @@ export class AuthStore {
           email: 'admin@panoptext.local',
           role: 'admin',
           avatarColor: '#00bfb3',
+          enabled: true,
           preferences: {
             theme: 'dark',
             autoLayoutOnLoad: true,
@@ -79,6 +82,7 @@ export class AuthStore {
           email: 'engineer@panoptext.local',
           role: 'editor',
           avatarColor: '#3274d9',
+          enabled: true,
           preferences: {
             theme: 'dark',
             autoLayoutOnLoad: false,
@@ -93,6 +97,7 @@ export class AuthStore {
           email: 'operator@panoptext.local',
           role: 'viewer',
           avatarColor: '#f04e98',
+          enabled: true,
           preferences: {
             theme: 'dark',
             autoLayoutOnLoad: false,
@@ -115,6 +120,9 @@ export class AuthStore {
         const data = JSON.parse(raw);
         if (Array.isArray(data.users)) {
           for (const u of data.users) {
+            if (u.enabled === undefined) {
+              u.enabled = true;
+            }
             this.users.set(u.username.toLowerCase(), u);
           }
         }
@@ -143,6 +151,7 @@ export class AuthStore {
       email: u.email,
       role: u.role,
       avatarColor: u.avatarColor,
+      enabled: u.enabled !== false,
       preferences: { ...u.preferences }
     };
   }
@@ -153,6 +162,10 @@ export class AuthStore {
 
     const inputHash = hashPassword(password);
     if (user.passwordHash !== inputHash) return null;
+
+    if (user.enabled === false) {
+      throw new Error('This user account is disabled. Please contact an administrator.');
+    }
 
     const token = `pnp_${crypto.randomBytes(24).toString('hex')}`;
     this.sessions.set(token, user.id);
@@ -169,6 +182,10 @@ export class AuthStore {
 
     for (const u of this.users.values()) {
       if (u.id === userId) {
+        if (u.enabled === false) {
+          this.sessions.delete(token);
+          return null;
+        }
         return this.toPublicProfile(u);
       }
     }
@@ -189,6 +206,7 @@ export class AuthStore {
     fullName: string;
     email: string;
     role: 'admin' | 'editor' | 'viewer';
+    enabled?: boolean;
   }): UserPublicProfile {
     const key = data.username.trim().toLowerCase();
     if (this.users.has(key)) {
@@ -206,6 +224,7 @@ export class AuthStore {
       email: data.email.trim(),
       role: data.role || 'editor',
       avatarColor: randomColor,
+      enabled: data.enabled !== undefined ? !!data.enabled : true,
       preferences: {
         theme: 'dark',
         autoLayoutOnLoad: true,
@@ -222,6 +241,7 @@ export class AuthStore {
     fullName?: string;
     email?: string;
     role?: 'admin' | 'editor' | 'viewer';
+    enabled?: boolean;
     newPassword?: string;
   }): UserPublicProfile {
     for (const u of this.users.values()) {
@@ -229,6 +249,28 @@ export class AuthStore {
         if (updates.fullName !== undefined) u.fullName = updates.fullName.trim();
         if (updates.email !== undefined) u.email = updates.email.trim();
         if (updates.role !== undefined) u.role = updates.role;
+        if (updates.enabled !== undefined) {
+          if (updates.enabled === false) {
+            // Safety: cannot disable the last remaining active admin
+            let activeAdminCount = 0;
+            for (const other of this.users.values()) {
+              if (other.role === 'admin' && other.enabled !== false) {
+                activeAdminCount++;
+              }
+            }
+            if (u.role === 'admin' && activeAdminCount <= 1) {
+              throw new Error('Cannot disable the last active administrator account.');
+            }
+
+            // Invalidate all active sessions for this disabled user
+            for (const [token, uid] of this.sessions.entries()) {
+              if (uid === id) {
+                this.sessions.delete(token);
+              }
+            }
+          }
+          u.enabled = updates.enabled;
+        }
         if (updates.newPassword && updates.newPassword.trim()) {
           u.passwordHash = hashPassword(updates.newPassword.trim());
         }

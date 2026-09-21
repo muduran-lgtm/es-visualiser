@@ -147,5 +147,6 @@ export interface UserProfile {
   email: string;
   role: 'admin' | 'editor' | 'viewer';
   avatarColor: string;
+  enabled: boolean;
   preferences: UserPreferences;
 }

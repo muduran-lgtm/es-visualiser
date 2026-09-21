@@ -65,12 +65,17 @@ async function start() {
       reply.status(400);
       return { error: 'Username and password are required.' };
     }
-    const result = authStore.login(username, password);
-    if (!result) {
-      reply.status(401);
-      return { error: 'Invalid username or password.' };
+    try {
+      const result = authStore.login(username, password);
+      if (!result) {
+        reply.status(401);
+        return { error: 'Invalid username or password.' };
+      }
+      return result;
+    } catch (err: any) {
+      reply.status(403);
+      return { error: err.message };
     }
-    return result;
   });
 
   fastify.get('/api/auth/me', async (req: any, reply: any) => {
@@ -153,7 +158,8 @@ async function start() {
         password: body.password,
         fullName: body.fullName,
         email: body.email || '',
-        role: body.role || 'editor'
+        role: body.role || 'editor',
+        enabled: body.enabled !== undefined ? !!body.enabled : true
       });
       return { success: true, user: created };
     } catch (err: any) {
@@ -170,8 +176,25 @@ async function start() {
         fullName: body.fullName,
         email: body.email,
         role: body.role,
+        enabled: body.enabled,
         newPassword: body.newPassword
       });
+      return { success: true, user: updated };
+    } catch (err: any) {
+      reply.status(400);
+      return { error: err.message };
+    }
+  });
+
+  fastify.patch('/api/users/:id/status', async (req: any, reply: any) => {
+    const { id } = req.params as { id: string };
+    const body = (req.body as any) || {};
+    if (typeof body.enabled !== 'boolean') {
+      reply.status(400);
+      return { error: 'Field "enabled" must be a boolean.' };
+    }
+    try {
+      const updated = authStore.updateUser(id, { enabled: body.enabled });
       return { success: true, user: updated };
     } catch (err: any) {
       reply.status(400);
