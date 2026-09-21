@@ -1,0 +1,17 @@
+{
+  "name": "panoptext-visualiser",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "server",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"npm run dev -w server\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w server && npm run build -w frontend",
+    "test": "npm run test -w frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

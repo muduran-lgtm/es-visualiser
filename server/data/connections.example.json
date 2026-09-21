@@ -1,0 +1,23 @@
+{
+  "activeId": "mock-env",
+  "connections": [
+    {
+      "id": "mock-env",
+      "name": "Mock Environment (Local Samples)",
+      "url": "http://mock-kibana:5601",
+      "apiKey": "",
+      "space": "default",
+      "insecureTLS": false,
+      "isMock": true
+    },
+    {
+      "id": "example-cluster",
+      "name": "Example Kibana Cluster",
+      "url": "https://kibana.example.com:5601",
+      "apiKey": "YOUR_API_KEY_HERE",
+      "space": "default",
+      "insecureTLS": true,
+      "isMock": false
+    }
+  ]
+}

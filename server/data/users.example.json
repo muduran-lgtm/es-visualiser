@@ -1,0 +1,18 @@
+{
+  "users": [
+    {
+      "id": "usr-admin",
+      "username": "admin",
+      "passwordHash": "f1e3a35ea40bcd135f653b7aebd40e4d3ed7e5307b8e16868b839528a34d8d31",
+      "fullName": "System Administrator",
+      "email": "admin@panoptext.local",
+      "role": "admin",
+      "avatarColor": "#00bfb3",
+      "preferences": {
+        "theme": "dark",
+        "autoLayoutOnLoad": true,
+        "confirmOnSave": false
+      }
+    }
+  ]
+}
