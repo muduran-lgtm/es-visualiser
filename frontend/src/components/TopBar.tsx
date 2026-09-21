@@ -8,6 +8,7 @@ import {
 import { WorkflowSummary, ClientConnectionSummary, UserProfile } from '../types.js';
 import { ThemeSwitch } from './ThemeSwitch.js';
 import { useTheme } from '../context/ThemeContext.js';
+import { PanoptextEyeLogo } from './PanoptextEyeLogo.js';
 
 interface TopBarProps {
   workflows: WorkflowSummary[];
@@ -95,12 +96,12 @@ export const TopBar: React.FC<TopBarProps> = ({
           : 'bg-white border-slate-200 text-slate-800 shadow-xs'
       }`}
     >
-      {/* Left section: Hamburger (User Settings), Brand, Connection Pill, Workflow Selector */}
-      <div className="flex items-center gap-2.5">
+      {/* Left section: Hamburger, Eye Logo, Connection Pill, Workflow Selector */}
+      <div className="flex items-center gap-2 shrink-0">
         {/* Hamburger Menu -> Opens Left Settings Drawer */}
         <button
           onClick={onOpenUserSettings}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors cursor-pointer ${
             isDarkTheme
               ? 'text-neutral-300 hover:text-white hover:bg-[#252834]'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -110,23 +111,22 @@ export const TopBar: React.FC<TopBarProps> = ({
           <Menu size={18} />
         </button>
 
-        {/* Brand: Panoptext.Visualiser */}
-        <div className="flex items-center gap-1.5 pr-1">
-          <div className="w-5 h-5 rounded bg-gradient-to-br from-[#00bfb3] to-[#0077cc] flex items-center justify-center font-black text-black text-[10px] shadow">
-            P
-          </div>
-          <div className="flex items-center text-xs tracking-tight">
-            <span className={`font-extrabold ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>Panoptext</span>
-            <span className="font-bold text-[#00bfb3]">.Visualiser</span>
-          </div>
-        </div>
+        {/* Brand Logo: Simple Eye Logo in hex #0D5EAF */}
+        <button
+          type="button"
+          onClick={onOpenUserSettings}
+          className="flex items-center justify-center p-1 rounded hover:bg-[#0D5EAF]/10 transition-colors cursor-pointer"
+          title="Panoptext.Visualiser (Click to open menu)"
+        >
+          <PanoptextEyeLogo size={22} color="#0D5EAF" />
+        </button>
 
         <div className={`h-4 w-[1px] ${isDarkTheme ? 'bg-[#2d3139]' : 'bg-slate-300'}`} />
 
         {/* Active connection / Inventory pill -> Opens Cluster Integrations */}
         <button
           onClick={onOpenConnections}
-          className={`flex items-center gap-2 px-2.5 py-1 rounded text-xs font-medium transition-colors shadow-xs border ${
+          className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors shadow-xs border cursor-pointer ${
             isDarkTheme
               ? 'bg-[#20222b] hover:bg-[#272a37] border-[#2d3139] hover:border-[#4b5362] text-neutral-300'
               : 'bg-slate-100 hover:bg-slate-200/80 border-slate-300 hover:border-slate-400 text-slate-700'
@@ -134,21 +134,18 @@ export const TopBar: React.FC<TopBarProps> = ({
           title="Cluster Inventory & Integrations (Click to switch or edit clusters)"
         >
           <div className={`w-2.5 h-2.5 rounded-full ${activeConnection?.isMock ? 'bg-purple-400' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'}`} />
-          <span className="truncate max-w-[140px]">{activeConnection?.name || 'Mock Environment'}</span>
+          <span className="truncate max-w-[100px] md:max-w-[130px]">{activeConnection?.name || 'Mock Environment'}</span>
           <ChevronDown size={11} className={isDarkTheme ? 'text-neutral-500' : 'text-slate-400'} />
         </button>
 
         <div className={`h-4 w-[1px] ${isDarkTheme ? 'bg-[#2d3139]' : 'bg-slate-300'}`} />
 
         {/* Workflow Dropdown */}
-        <div className="flex items-center gap-1.5">
-          <label className={`text-[11px] font-semibold uppercase tracking-wider ${isDarkTheme ? 'text-neutral-400' : 'text-slate-500'}`}>
-            Workflow:
-          </label>
+        <div className="flex items-center gap-1">
           <select
             value={currentWorkflowId}
             onChange={(e) => onSelectWorkflow(e.target.value)}
-            className={`text-xs px-2.5 py-1 rounded border focus:outline-none focus:border-[#00bfb3] max-w-[190px] truncate transition-colors ${
+            className={`text-xs px-2 py-1 rounded border focus:outline-none focus:border-[#00bfb3] max-w-[120px] md:max-w-[160px] truncate transition-colors cursor-pointer ${
               isDarkTheme
                 ? 'bg-[#121316] text-white border-[#2d3139]'
                 : 'bg-slate-50 text-slate-900 border-slate-300'
@@ -166,14 +163,15 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div className="relative">
           <button
             onClick={() => setTemplateMenuOpen(!templateMenuOpen)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors border ${
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors border cursor-pointer ${
               isDarkTheme
                 ? 'bg-[#20222b] hover:bg-[#272a37] text-neutral-300 border-[#2d3139]'
                 : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700'
             }`}
+            title="Create new workflow"
           >
             <Plus size={13} />
-            <span>New</span>
+            <span className="hidden sm:inline">New</span>
             <ChevronDown size={11} />
           </button>
 
@@ -213,13 +211,13 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Center: Workflow Name Input + Enabled Switch */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 shrink min-w-0 mx-2">
         <input
           type="text"
           value={workflowName}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Workflow Name..."
-          className={`text-xs font-bold px-2 py-1 rounded border transition-colors text-center min-w-[200px] focus:outline-none focus:border-[#00bfb3] ${
+          className={`text-xs font-bold px-2 py-1 rounded border transition-all text-center w-28 sm:w-36 md:w-44 focus:w-56 focus:outline-none focus:border-[#00bfb3] truncate ${
             isDarkTheme
               ? 'bg-transparent hover:bg-[#121316] focus:bg-[#121316] text-white border-transparent hover:border-[#2d3139]'
               : 'bg-transparent hover:bg-slate-100 focus:bg-slate-100 text-slate-900 border-transparent hover:border-slate-300'
@@ -229,7 +227,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Enabled Toggle Switch */}
         <button
           onClick={onToggleEnabled}
-          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors border ${
+          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors border shrink-0 cursor-pointer ${
             workflowEnabled
               ? isDarkTheme 
                 ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60 hover:bg-emerald-900/60'
@@ -246,22 +244,22 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Dirty State Indicator */}
         {isDirty && (
-          <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded border ${
+          <span className={`hidden xl:flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded border shrink-0 ${
             isDarkTheme
               ? 'text-amber-400 bg-amber-950/40 border-amber-800/40'
               : 'text-amber-700 bg-amber-50 border-amber-300'
           }`}>
-            ● Unsaved changes
+            ● Unsaved
           </span>
         )}
       </div>
 
-      {/* Right section: Action buttons + Sliding Theme Switch + User Avatar */}
-      <div className="flex items-center gap-1.5">
+      {/* Right section: Action buttons + User Avatar */}
+      <div className="flex items-center gap-1.5 shrink-0 pr-1">
         {/* Auto Layout button */}
         <button
           onClick={onAutoLayout}
-          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded transition-colors border ${
+          className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors border cursor-pointer ${
             isDarkTheme
               ? 'text-neutral-300 bg-[#20222b] hover:bg-[#272a37] border-[#2d3139]'
               : 'text-slate-700 bg-slate-100 hover:bg-slate-200 border-slate-300'
@@ -269,13 +267,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           title="Auto Layout (Shortcut: Ctrl+D)"
         >
           <LayoutTemplate size={13} />
-          <span>Auto Layout</span>
+          <span className="hidden xl:inline">Auto Layout</span>
         </button>
 
         {/* Diff Preview button */}
         <button
           onClick={onOpenDiff}
-          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded transition-colors border ${
+          className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors border cursor-pointer ${
             isDarkTheme
               ? 'text-neutral-300 bg-[#20222b] hover:bg-[#272a37] border-[#2d3139]'
               : 'text-slate-700 bg-slate-100 hover:bg-slate-200 border-slate-300'
@@ -283,13 +281,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           title="View Changes (Diff Preview)"
         >
           <GitCommit size={13} />
-          <span>View Diff</span>
+          <span className="hidden xl:inline">Diff</span>
         </button>
 
         {/* Download YAML */}
         <button
           onClick={onDownloadYaml}
-          className={`p-1.5 rounded transition-colors ${
+          className={`p-1.5 rounded transition-colors cursor-pointer ${
             isDarkTheme
               ? 'text-neutral-400 hover:text-white hover:bg-[#252834]'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
@@ -302,7 +300,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Reload button */}
         <button
           onClick={onReload}
-          className={`p-1.5 rounded transition-colors ${
+          className={`p-1.5 rounded transition-colors cursor-pointer ${
             isDarkTheme
               ? 'text-neutral-400 hover:text-white hover:bg-[#252834]'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
@@ -315,7 +313,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Schema Validation Issues Badge */}
         {validationErrorsCount > 0 && (
           <div 
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30 shrink-0 select-none animate-pulse"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30 shrink-0 select-none animate-pulse"
             title={`${validationErrorsCount} schema validation issue(s). See bottom YAML editor for details.`}
           >
             <AlertTriangle size={13} className="shrink-0 text-rose-400" />
@@ -327,7 +325,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={onSave}
           disabled={isSaving}
-          className="flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded bg-[#00bfb3] hover:bg-[#00a89d] text-[#121316] transition-colors shadow disabled:opacity-50"
+          className="flex items-center gap-1 px-3 py-1 text-xs font-bold rounded bg-[#00bfb3] hover:bg-[#00a89d] text-[#121316] transition-colors shadow disabled:opacity-50 cursor-pointer shrink-0"
           title="Save to Kibana (Shortcut: Ctrl+S)"
         >
           <Save size={13} />
@@ -338,7 +336,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {isRunning ? (
           <button
             onClick={onCancelRun}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm animate-pulse cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm animate-pulse cursor-pointer shrink-0"
             title="Stop / Cancel running execution"
           >
             <Square size={12} className="fill-current" />
@@ -347,7 +345,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         ) : (
           <button
             onClick={onTriggerRun}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
             title="Run test workflow live on Kibana"
           >
             <Play size={12} className="fill-current" />
@@ -359,7 +357,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {onToggleExecutionDrawer && (
           <button
             onClick={onToggleExecutionDrawer}
-            className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded transition-colors border ${
+            className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-colors border cursor-pointer shrink-0 ${
               isExecutionDrawerOpen
                 ? 'bg-[#00bfb3]/20 border-[#00bfb3]/60 text-[#00bfb3]'
                 : isDarkTheme
@@ -373,19 +371,19 @@ export const TopBar: React.FC<TopBarProps> = ({
             ) : (
               <Activity size={13} />
             )}
-            <span>Monitor</span>
+            <span className="hidden lg:inline">Monitor</span>
           </button>
         )}
 
         {/* Divider */}
-        <div className={`h-4 w-[1px] ${isDarkTheme ? 'bg-[#2d3139]' : 'bg-slate-300'} mx-1`} />
+        <div className={`h-4 w-[1px] ${isDarkTheme ? 'bg-[#2d3139]' : 'bg-slate-300'} mx-0.5 shrink-0`} />
 
         {/* User Avatar Circle */}
         {currentUser && (
-          <div className="relative" ref={userMenuRef}>
+          <div className="relative shrink-0" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm ring-1 ring-white/20 hover:ring-white/50 transition-all hover:scale-105"
+              className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm ring-1 ring-white/20 hover:ring-white/50 transition-all hover:scale-105 shrink-0 cursor-pointer"
               style={{ backgroundColor: currentUser.avatarColor || '#00bfb3' }}
               title={`Logged in as ${currentUser.fullName} (@${currentUser.username})`}
             >

@@ -7,6 +7,7 @@ import {
 import { UserProfile } from '../types.js';
 import { listUsersApi, createUserApi, updateUserApi, deleteUserApi } from '../services/auth.js';
 import { useTheme } from '../context/ThemeContext.js';
+import { PanoptextEyeLogo } from './PanoptextEyeLogo.js';
 
 interface LeftSettingsDrawerProps {
   isOpen: boolean;
@@ -181,13 +182,13 @@ export const LeftSettingsDrawer: React.FC<LeftSettingsDrawerProps> = ({
           isDarkTheme ? 'bg-[#1b1c23] border-[#2d3139]' : 'bg-slate-50 border-slate-200'
         }`}>
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#00bfb3] to-[#0077cc] flex items-center justify-center font-black text-black text-xs shadow-md">
-              P
+            <div className="w-8 h-8 rounded-lg bg-[#0D5EAF]/10 border border-[#0D5EAF]/30 flex items-center justify-center shadow-xs shrink-0">
+              <PanoptextEyeLogo size={22} color="#0D5EAF" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <span className={`font-black tracking-wide text-sm ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>Panoptext</span>
-                <span className="text-[#00bfb3] font-bold text-sm">.Visualiser</span>
+                <span className="text-[#0D5EAF] font-bold text-sm">.Visualiser</span>
               </div>
               <p className={`text-[11px] ${isDarkTheme ? 'text-neutral-400' : 'text-slate-500'}`}>Settings & Administration</p>
             </div>
