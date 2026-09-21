@@ -1,153 +1,173 @@
-# Elastic Workflows Visual Editor (Görsel İş Akışı Editörü — PROTOTİP)
+# Panoptext Visualiser — Elastic Workflows Visual Editor
 
-Kibana Workflows özelliği için harici, bağımsız, modern ve iki yönlü (bi-directional) çalışan görsel (sürükle-bırak) iş akışı editörü.
-
----
-
-## 🚀 Özellikler
-
-- **Görsel Graf Editörü (React Flow):**
-  - Tetikleyiciler (Manual, Scheduled, Alert, Event) ve adımların görsel düğüm akışı.
-  - Sürükle-bırak düğüm paleti (Elasticsearch, Kibana, Console, HTTP, Flow Control, AI).
-  - `@dagrejs/dagre` tabanlı otomatik yerleşim (`layoutGraph()`) ve `Ctrl+D` kısayolu (ileride `elkjs`'e geçiş için soyutlanmış).
-  - Düğüm bazlı görsel doğrulama rozetleri (zorunlu alanlar eksikse anlık kırmızı rozet uyarısı).
-- **CodeMirror 6 YAML Editörü:**
-  - Gerçek zamanlı YAML syntax renklendirme ve hata denetimi (linting).
-  - **İki yönlü akıllı senkronizasyon:** Kaynak etiketleme (`origin: 'canvas'` vs `'yaml'`) ve ~300 ms debounce ile sonsuz döngüsüz (loop-free) senkron.
-  - Geçersiz YAML girildiğinde grafiği bozmaz, hata satırını gösterir.
-- **Kayıpsız Round-Trip (eemeli/yaml Document API):**
-  - Editörün tanımadığı özel alanlar, yorum satırları (`#`), format ve üst düzey meta veriler (`consts`, `inputs`, `outputs`, `settings`) silinmez, eksiksiz korunur.
-  - Bilinmeyen/özel adımlar canvas'ta "Generic" düğüm olarak görüntülenir ve korunur.
-- **Çoklu Kibana Entegrasyonu & Hamburger Menü:**
-  - Üst bar hamburger menüsü (☰) üzerinden birden fazla Kibana kümesi (Dev, Staging, Prod) ve Mock ortamı tanımlama/seçme.
-  - API anahtarları asla tarayıcıda açık tutulmaz; Fastify backend proxy üzerinde güvenle maskelenir ve yönetilir.
-  - Tek tıkla canlı bağlantı sınama (test ping).
-- **Güvenli Kaydetme & Diff Önizleme:**
-  - `Ctrl+S` ile hızlı kaydetme.
-  - **Farkı Gör (Diff Preview):** Kibana'daki orijinal sürüm ile mevcut değişiklikleri Git tarzı renklendirilmiş modalda kıyaslama.
-  - **Eşzamanlı Düzenleme Kontrolü:** Başka bir kullanıcı/oturum workflow'u güncellediyse `updatedAt` kontrolü ile 409 çakışma uyarısı.
-  - Sunucu tarafında kaydetmeden önce YAML syntax doğrulaması.
-- **Mock Modu:**
-  - Kibana olmadan test edebilmek için 3 hazır gerçekçi senaryo (Basit Manuel Log, Güvenlik Zenginleştirme, Koşullu Yönlendirme & Döngü).
-- **Kibana Koyu Tema Uyumu:**
-  - Kibana EUI tasarım diline uygun koyu tema arayüzü.
+A modern, standalone, bi-directional visual (drag-and-drop) workflow editor designed specifically for **Kibana Workflows** (Elasticsearch / Elastic Stack).
 
 ---
 
-## 📁 Proje Klasör Yapısı
+## 🚀 Key Features
+
+- **Visual Graph Canvas (React Flow):**
+  - Intuitive visualization of Triggers (Manual, Scheduled, Alert, Event) and execution steps.
+  - Drag-and-drop palette covering Elasticsearch, Kibana, Console, HTTP, Flow Control, Connectors (Slack, Jira, PagerDuty), and AI steps.
+  - Dagre-based auto-layout engine (`layoutGraph()`) with `Ctrl+D` shortcut.
+  - Step-level schema status and visual alert badges on graph nodes.
+
+- **CodeMirror 6 YAML Source Editor:**
+  - Real-time syntax highlighting, indentation guides, and inline schema diagnostics (linter).
+  - **Loop-free bi-directional synchronization:** Origin tagging (`origin: 'canvas'` vs `'yaml'`) with ~300ms debounce.
+  - Resilient design: syntax errors never break the canvas graph.
+
+- **Kibana Schema Validation Engine (445+ Step Types & 25 Trigger Types):**
+  - Authoritative validation against the official Kibana Workflows JSON Schema (Draft-07).
+  - Validates required step fields (`connector-id`, `foreach`, `steps`, `condition`, `with`).
+  - Validates `with` parameter constraints for specific operations (e.g. `index`, `message`, `query`, `duration`).
+  - Catches deep Elasticsearch Query DSL errors (e.g., boolean `term` filter requirements).
+  - Typo detection with Levenshtein distance matching against allowed properties.
+
+- **💡 Smart Suggestions & 1-Click Quick Fix:**
+  - **Connector ID Auto-fill:** Intelligently identifies connector type (Slack, Jira, PagerDuty, etc.) and provides a valid placeholder ID.
+  - **Inferred Foreach Expressions:** Scans preceding search/aggregation steps to automatically suggest exact bucket expressions (e.g. `{{ steps.top_sources.output.aggregations.by_host.buckets }}`) or hits arrays.
+  - **Control Flow Scaffolding:** Fills empty `steps` or missing conditions with contextual default step skeletons.
+  - **1-Click Execution:** Apply individual fixes or resolve all workflow issues at once using the **"Fix All" (Tümünü Düzelt)** action.
+  - **Node Inspector Integration:** Inspecting a highlighted node in the Properties panel displays its schema errors with a direct Quick Fix button.
+
+- **Lossless Round-Trip Guarantee (`eemeli/yaml` AST):**
+  - Comments (`#`), custom formatting, top-level metadata (`consts`, `inputs`, `outputs`, `settings`), and unknown/custom steps are strictly preserved.
+  - Custom or proprietary steps appear safely as "Generic" nodes on the canvas.
+
+- **Multi-Cluster Connection Management:**
+  - Connect to multiple Kibana clusters (Dev, Staging, Production) or local Mock mode via the connection selector.
+  - API keys are securely managed and masked by the Fastify backend proxy.
+  - Insecure TLS / self-signed certificate support and 1-click connection health ping.
+
+- **Safe Save & Git-style Diff Preview:**
+  - `Ctrl+S` quick save.
+  - Visual Diff Modal comparing current changes against the live Kibana definition before saving.
+  - Concurrency conflict detection (HTTP 409) based on `updatedAt` timestamps.
+
+- **Responsive Theme Support:**
+  - Dark and light themes tailored to the Kibana Elastic UI (EUI) design system.
+
+---
+
+## 📁 Project Architecture
 
 ```text
 elastic-workflows-editor/
-├── package.json               # Root scripts & npm workspaces (concurrently)
-├── .env.example / .env        # Ortam değişkenleri
+├── package.json               # Root npm workspace scripts (concurrently)
+├── .env.example / .env        # Server & proxy environment configuration
 ├── docs/
-│   └── api-notes.md           # Adım 0: Kibana Workflows API ve YAML şeması araştırma notları
+│   └── api-notes.md           # Kibana Workflows API and schema research notes
 ├── server/                    # Fastify Backend Proxy
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── data/
-│   │   └── connections.json   # Çoklu Kibana profilleri saklama alanı
+│   │   ├── connections.example.json # Template for cluster connection profiles
+│   │   ├── users.example.json       # Template for authentication accounts
+│   │   └── schemaCatalog.json       # Indexed 445+ step types & 25 trigger types
 │   └── src/
-│       ├── index.ts           # Fastify sunucusu, CORS, REST rotaları
-│       ├── types.ts           # Veri tipleri
-│       ├── connectionsStore.ts# Kibana profilleri yöneticisi
-│       ├── mockData.ts        # 3 örnek mock workflow
-│       └── kibanaClient.ts    # Kibana API istemcisi, Space & Insecure TLS desteği
-└── frontend/                  # React + TypeScript + Vite
+│       ├── index.ts           # Fastify server, REST endpoints, CORS & TLS
+│       ├── types.ts           # Shared TypeScript interfaces
+│       ├── connectionsStore.ts# Multi-cluster credentials store
+│       ├── authStore.ts       # Authentication & user profile store
+│       ├── workflowValidator.ts # Server-side schema validator
+│       ├── mockData.ts        # Built-in sample workflows
+│       └── kibanaClient.ts    # Kibana Workflows API client
+└── frontend/                  # React + TypeScript + Vite Client
     ├── package.json
-    ├── vite.config.ts         # Vite yapılandırması & /api proxy
+    ├── vite.config.ts         # Vite configuration & HTTPS reverse proxy
     └── src/
-        ├── App.tsx            # Ana uygulama & senkronizasyon orkestratörü
+        ├── App.tsx            # Main application layout & two-way sync orchestrator
         ├── components/
-        │   ├── TopBar.tsx     # Üst bar, workflow seçici, kaydet, hamburger menü
-        │   ├── Palette.tsx    # Sürükle-bırak adım/tetikleyici paleti
-        │   ├── Canvas.tsx     # React Flow canvas, minimap, bağlantılar
-        │   ├── Properties.tsx # Seçili düğüm parametre düzenleyicisi
-        │   ├── YamlEditor.tsx # CodeMirror 6 YAML editörü ve linter
-        │   ├── DiffModal.tsx  # Kaydetme öncesi diff önizleme penceresi
-        │   └── SettingsDrawer.tsx # Hamburger Kibana entegrasyon çekmecesi
+        │   ├── TopBar.tsx     # Navigation, workflow selector, save & clusters
+        │   ├── Palette.tsx    # Drag-and-drop step/trigger palette
+        │   ├── Canvas.tsx     # React Flow canvas, minimap, controls & layout
+        │   ├── Properties.tsx # Selected step parameter inspector & quick fixes
+        │   ├── YamlEditor.tsx # CodeMirror 6 editor, linter & Quick Fix drawer
+        │   ├── DiffModal.tsx  # Pre-save Git-style visual diff modal
+        │   └── SettingsDrawer.tsx # Cluster connection & credentials drawer
         ├── flow/
-        │   ├── layout.ts      # layoutGraph() dagre soyutlaması
-        │   └── nodes/         # Trigger, Step, If, Foreach, Generic düğümleri
+        │   ├── layout.ts      # Dagre auto-layout graph abstraction
+        │   └── nodes/         # Custom React Flow nodes (Trigger, Step, If, Foreach)
         └── services/
-            ├── api.ts         # Backend proxy istemcisi
-            └── yamlSync.ts    # eemeli/yaml Document API kayıpsız dönüştürücü
+            ├── api.ts         # Backend REST API client
+            ├── schemaCatalog.json # Kibana JSON Schema catalog
+            ├── validator.ts   # Client-side schema validator & Quick Fix engine
+            └── yamlSync.ts    # Lossless AST bidirectional synchronization
 ```
 
 ---
 
-## ⚙️ Kurulum ve Çalıştırma
+## ⚙️ Getting Started
 
-### 1. Gereksinimler
-- Node.js (v20 veya v22 LTS)
-- npm (v9 veya üzeri)
+### 1. Prerequisites
+- **Node.js**: v20 or v22 LTS
+- **npm**: v9 or higher
 
-### 2. Ortam Değişkenleri (.env)
-Kök dizindeki `.env` dosyasını yapılandırın:
+### 2. Environment Configuration
+Copy the example environment file:
 ```bash
-# Örnek:
 cp .env.example .env
 ```
 
-`.env` içeriği:
+Configure `.env` if connecting to a live Kibana cluster:
 ```env
-# Kibana Bağlantı Ayarları (Canlı Kibana kullanacaksanız)
-KIBANA_URL=https://kibana.mycompany.com:5601
+# Kibana Cluster Settings
+KIBANA_URL=https://kibana.example.com:5601
 KIBANA_API_KEY=your_base64_api_key_here
 KIBANA_SPACE=default
 KIBANA_INSECURE_TLS=false
 
-# Mock Modu (Kibana olmadan çalışmak için true yapın)
-MOCK_MODE=true
+# Mock Mode (set to true to test locally without Kibana)
+MOCK_MODE=false
 
-# Portlar
+# Server Ports
 PORT=3001
 HOST=0.0.0.0
 ```
 
-> **İpucu:** Arayüzün sol üst köşesindeki **Hamburger Menüye (☰)** tıklayarak istediğiniz zaman yeni Kibana bağlantıları ekleyebilir ve `.env` dosyasını değiştirmeden canlı ve mock modları arasında geçiş yapabilirsiniz.
+> **Tip:** You can also dynamically add and switch between multiple Kibana clusters directly from the UI using the **Cluster Connections** menu without modifying `.env`.
 
-### 3. Geliştirme Ortamını Başlatma
-Hem Fastify sunucusunu (`3001`) hem de Vite frontend uygulamasını (`5173`) tek komutla ayağa kaldırın:
-
+### 3. Start Development Server
+Run both the Fastify backend server (`https://localhost:3001`) and the Vite client (`https://localhost:5173`):
 ```bash
 npm run dev
 ```
 
-Tarayıcınızda açın:
+Open your browser at:
 ```text
-http://localhost:5173
+https://localhost:5173
 ```
 
-### 4. Testleri Çalıştırma
-YAML ↔ Graf çift yönlü kayıpsız dönüştürücü birim testlerini çalıştırmak için:
+### 4. Running Tests
+Run the Vitest test suite covering YAML lossless round-trips, official schema validation, and smart quick fix assertions:
 ```bash
 npm run test
 ```
 
+### 5. Production Build
+Compile both backend TypeScript and frontend Vite assets:
+```bash
+npm run build
+```
+
 ---
 
-## ⌨️ Klavye Kısayolları
+## ⌨️ Keyboard Shortcuts
 
-| Kısayol | İşlem |
+| Shortcut | Action |
 | :--- | :--- |
-| **`Ctrl + S`** / **`Cmd + S`** | Workflow'u kaydet (Kibana veya Mock) |
-| **`Ctrl + D`** / **`Cmd + D`** | Grafiği otomatik düzenle (`layoutGraph`) |
-| **`Delete`** / **`Backspace`** | Seçili adımı veya bağlantıyı sil |
+| **`Ctrl + S`** / **`Cmd + S`** | Save current workflow to Kibana / Mock storage |
+| **`Ctrl + D`** / **`Cmd + D`** | Auto-align and layout graph nodes (`layoutGraph`) |
+| **`Delete`** / **`Backspace`** | Remove selected step node or connection edge |
 
 ---
 
-## 🔍 Bilinen Sınırlamalar (Bu Prototip İçin)
-
-1. **Karmaşık İç İçe Akışlar:** Prototip doğrusal akışları, `if (then/else)` dallanmalarını ve `foreach` döngü bloklarını doğrudan görselleştirir. Çok derin iç içe `switch` ve `parallel` blokları için alt paneldeki tam özellikli YAML editörü devreye girer.
-2. **Kibana Sürüm Farklılıkları:** Elastic 9.5+ sürümlerinde `inputs` manual trigger altına taşınabilirken, 9.4 ve öncesinde kök seviyede tanımlanır. Editör her iki formatı da `eemeli/yaml` Document API sayesinde olduğu gibi korur.
-3. **Execution İzleme:** Bu tur prototip kapsamındadır; çalıştırma geçmişi ve logları sonraki fazlarda eklenecektir.
+## 🛡️ Security & Privacy
+- Sensitive cluster credentials (`connections.json`), local user credentials (`users.json`), SSL certificates (`certs/`), and `.env` files are ignored by `.gitignore`.
+- API keys are never exposed in the browser bundle; all external Kibana API requests are brokered through the Fastify backend proxy.
 
 ---
 
-## 🛣️ Sonraki Adımlar
-
-- [ ] **Execution Dashboard:** Çalışan workflow'ların durumunu ve adım çıktılarını canlı izleme.
-- [ ] **JSON Schema Tabanlı Doğrulama:** `/api/workflows/schema` endpoint'inden dinamik şema çekip CodeMirror içinde otomatik tamamlama.
-- [ ] **Elkjs Entegrasyonu:** `layoutGraph()` soyutlaması kullanılarak daha gelişmiş graf yerleşim motoruna geçiş.
-- [ ] **Undo / Redo Geçmişi:** Canvas ve YAML geçmiş adımları için geri/ileri alma desteği.
+## 📄 License
+MIT License. Created for the Elastic Community and Kibana Workflows ecosystem.
