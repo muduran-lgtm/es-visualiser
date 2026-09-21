@@ -200,7 +200,7 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
                     ? 'bg-[#232634] text-neutral-300 hover:text-white hover:bg-[#2e3245] border-[#363a4c]'
                     : 'bg-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-300 border-slate-300 font-medium'
               }`}
-              title="Canlı çalıştırma ve izleme paneline geç"
+              title="Switch to Live Execution Monitor"
             >
               <Terminal size={12} className={isRunning ? 'text-sky-400 animate-spin' : 'text-[#00bfb3]'} />
               <span>Live Monitor</span>
@@ -214,7 +214,7 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
               <button
                 onClick={() => setShowErrorList(!showErrorList)}
                 className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-medium bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30 transition-colors shrink-0 cursor-pointer"
-                title="Şema doğrulama hatalarını ve önerileri görmek için tıkla"
+                title="Click to view schema validation issues and quick fixes"
               >
                 <AlertTriangle size={13} className="shrink-0 text-rose-400" />
                 <span>{validationErrors.length} Schema Issue{validationErrors.length > 1 ? 's' : ''}</span>
@@ -225,10 +225,10 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
                 <button
                   onClick={handleApplyAllFixes}
                   className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 transition-colors shrink-0 cursor-pointer"
-                  title="Tüm düzeltilebilir hataları otomatik düzelt"
+                  title="Automatically apply all fixable suggestions"
                 >
                   <Sparkles size={11} />
-                  <span>💡 Hızlı Düzelt ({fixableErrors.length})</span>
+                  <span>💡 Quick Fix All ({fixableErrors.length})</span>
                 </button>
               )}
             </div>
@@ -276,16 +276,16 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
                 <button
                   onClick={handleApplyAllFixes}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-colors cursor-pointer"
-                  title="Tüm önerileri ve şema düzeltmelerini tek tıkla uygula"
+                  title="Apply all suggestions and schema fixes with one click"
                 >
                   <Sparkles size={12} />
-                  <span>Tümünü Düzelt ({fixableErrors.length})</span>
+                  <span>Fix All ({fixableErrors.length})</span>
                 </button>
               )}
               <button 
                 onClick={() => setShowErrorList(false)}
                 className="p-1 rounded hover:bg-rose-500/20 text-neutral-400 hover:text-white cursor-pointer"
-                title="Kapat"
+                title="Close"
               >
                 <X size={14} />
               </button>
@@ -304,10 +304,10 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
                 <div 
                   onClick={() => jumpToLine(err.line)}
                   className="flex items-start gap-2.5 cursor-pointer flex-1 min-w-0"
-                  title="Tıklayarak YAML editöründe ilgili satıra git"
+                  title="Click to jump to line in YAML editor"
                 >
                   <span className="font-mono px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/20 text-rose-400 shrink-0">
-                    Satır {err.line}:{err.col}
+                    Line {err.line}:{err.col}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="font-mono text-[11px] leading-tight text-neutral-200 font-medium">
@@ -316,7 +316,7 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
                     {err.quickFix && (
                       <div className="text-[11px] text-amber-400 flex items-center gap-1.5 mt-1 font-sans">
                         <Lightbulb size={12} className="shrink-0 text-amber-400" />
-                        <span className="font-semibold">Öneri:</span>
+                        <span className="font-semibold">Suggestion:</span>
                         <span className="opacity-95">{err.quickFix.title}</span>
                       </div>
                     )}
@@ -333,7 +333,7 @@ export const YamlEditor: React.FC<YamlEditorProps> = ({
                     title={err.quickFix.description || err.quickFix.title}
                   >
                     <Wand2 size={12} />
-                    <span>Hızlı Düzelt</span>
+                    <span>Quick Fix</span>
                   </button>
                 )}
               </div>

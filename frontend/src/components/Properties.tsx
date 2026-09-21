@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Trash2, Info, AlertTriangle, Sparkles, Wand2, Lightbulb,
   CheckCircle2, XCircle, Clock, Loader2, Copy, Check, Terminal 
 } from 'lucide-react';
+import { Edge } from '@xyflow/react';
 import { CustomNode, WorkflowNodeData } from '../types.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { ValidationError, QuickFix } from '../services/validator.js';
 import { sanitizeSensitiveData, sanitizeSensitiveString } from '../services/sanitizer.js';
+import { getAvailableVariables } from '../services/graphTraverse.js';
+import { DynamicStepForm } from './DynamicStepForm.js';
 
 interface PropertiesProps {
   selectedNode: CustomNode | null;
+  nodes?: CustomNode[];
+  edges?: Edge[];
   onUpdateNode: (id: string, updatedData: Partial<WorkflowNodeData>) => void;
   onDeleteNode: (id: string) => void;
   workflowMeta?: {
@@ -24,6 +29,8 @@ interface PropertiesProps {
 
 export const Properties: React.FC<PropertiesProps> = ({
   selectedNode,
+  nodes = [],
+  edges = [],
   onUpdateNode,
   onDeleteNode,
   workflowMeta,
@@ -32,17 +39,19 @@ export const Properties: React.FC<PropertiesProps> = ({
 }) => {
   const { isDarkTheme } = useTheme();
   const [formData, setFormData] = useState<Partial<WorkflowNodeData>>({});
-  const [rawWithJson, setRawWithJson] = useState('');
-  const [rawJsonError, setRawJsonError] = useState<string | null>(null);
   const [outputCopied, setOutputCopied] = useState(false);
 
   useEffect(() => {
     if (selectedNode) {
       setFormData(selectedNode.data);
-      setRawWithJson(JSON.stringify(selectedNode.data.with || {}, null, 2));
-      setRawJsonError(null);
     }
   }, [selectedNode]);
+
+  // Compute available upstream output variables
+  const availableVariables = useMemo(() => {
+    if (!selectedNode || !nodes || !edges) return [];
+    return getAvailableVariables(selectedNode.id, nodes, edges);
+  }, [selectedNode, nodes, edges]);
 
   if (!selectedNode) {
     return (
@@ -96,27 +105,8 @@ export const Properties: React.FC<PropertiesProps> = ({
     onUpdateNode(selectedNode.id, { [field]: value });
   };
 
-  const handleWithFieldChange = (key: string, value: any) => {
-    const updatedWith = { ...(formData.with || {}), [key]: value };
-    handleChange('with', updatedWith);
-    setRawWithJson(JSON.stringify(updatedWith, null, 2));
-  };
-
-  const handleRawJsonChange = (text: string) => {
-    setRawWithJson(text);
-    try {
-      const parsed = JSON.parse(text);
-      setRawJsonError(null);
-      handleChange('with', parsed);
-    } catch (err: any) {
-      setRawJsonError(err.message);
-    }
-  };
-
-  const nodeData = formData;
+  const nodeData = formData as WorkflowNodeData;
   const isTrigger = nodeData.nodeCategory === 'trigger';
-  const isIf = nodeData.type === 'if';
-  const isForeach = nodeData.type === 'foreach';
 
   const inputClass = `w-full text-xs px-2.5 py-1.5 rounded border focus:outline-none focus:border-[#00bfb3] transition-colors ${
     isDarkTheme 
@@ -140,11 +130,13 @@ export const Properties: React.FC<PropertiesProps> = ({
           <div className={`text-xs font-bold uppercase tracking-wider ${isDarkTheme ? 'text-neutral-200' : 'text-slate-800'}`}>
             {isTrigger ? 'Trigger Properties' : 'Step Properties'}
           </div>
-          <div className={`text-[10px] font-mono mt-0.5 ${isDarkTheme ? 'text-neutral-400' : 'text-slate-500'}`}>{nodeData.type}</div>
+          <div className={`text-[10px] font-mono mt-0.5 ${isDarkTheme ? 'text-[#00bfb3]' : 'text-teal-700'}`}>
+            {nodeData.type}
+          </div>
         </div>
         <button
           onClick={() => onDeleteNode(selectedNode.id)}
-          className={`p-1.5 rounded transition-colors ${
+          className={`p-1.5 rounded transition-colors cursor-pointer ${
             isDarkTheme 
               ? 'text-neutral-400 hover:text-rose-400 hover:bg-rose-950/40' 
               : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
@@ -203,10 +195,10 @@ export const Properties: React.FC<PropertiesProps> = ({
                       setOutputCopied(true);
                       setTimeout(() => setOutputCopied(false), 1500);
                     }}
-                    className="flex items-center gap-1 text-[10px] hover:text-white transition-colors"
+                    className="flex items-center gap-1 text-[10px] hover:text-white transition-colors cursor-pointer"
                   >
                     {outputCopied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
-                    <span>{outputCopied ? 'Kopyalandı' : 'Kopyala'}</span>
+                    <span>{outputCopied ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
                 <pre className={`p-2 rounded font-mono text-[10px] max-h-36 overflow-auto border leading-relaxed ${
@@ -229,7 +221,7 @@ export const Properties: React.FC<PropertiesProps> = ({
             <div className="flex items-center justify-between font-bold text-xs pb-1 border-b border-rose-900/30">
               <span className="text-rose-400 flex items-center gap-1.5">
                 <AlertTriangle size={14} />
-                Kibana Şema Uyarısı ({nodeErrors.length})
+                Kibana Schema Warning ({nodeErrors.length})
               </span>
             </div>
             {nodeErrors.map((err, i) => (
@@ -245,7 +237,7 @@ export const Properties: React.FC<PropertiesProps> = ({
                     title={err.quickFix.description || err.quickFix.title}
                   >
                     <Wand2 size={12} />
-                    <span>Öneriyi Uygula: {err.quickFix.title}</span>
+                    <span>Apply Fix: {err.quickFix.title}</span>
                   </button>
                 )}
               </div>
@@ -253,23 +245,25 @@ export const Properties: React.FC<PropertiesProps> = ({
           </div>
         )}
 
-        {/* Name input */}
-        <div className="space-y-1">
-          <label className={`${labelClass} flex items-center justify-between`}>
-            <span>Step Name (name) *</span>
-            {nodeData.validationError && (
-              <span className="text-rose-400 flex items-center gap-1 text-[10px]">
-                <AlertTriangle size={11} /> {nodeData.validationError}
-              </span>
-            )}
-          </label>
-          <input
-            type="text"
-            value={nodeData.name || ''}
-            onChange={(e) => handleChange('name', e.target.value)}
-            className={inputClass}
-          />
-        </div>
+        {/* Name input (for step nodes) */}
+        {!isTrigger && (
+          <div className="space-y-1">
+            <label className={`${labelClass} flex items-center justify-between`}>
+              <span>Step Name (name) *</span>
+              {nodeData.validationError && (
+                <span className="text-rose-400 flex items-center gap-1 text-[10px]">
+                  <AlertTriangle size={11} /> {nodeData.validationError}
+                </span>
+              )}
+            </label>
+            <input
+              type="text"
+              value={nodeData.name || ''}
+              onChange={(e) => handleChange('name', e.target.value)}
+              className={inputClass}
+            />
+          </div>
+        )}
 
         {/* Description input */}
         <div className="space-y-1">
@@ -296,94 +290,15 @@ export const Properties: React.FC<PropertiesProps> = ({
           />
         </div>
 
-        {/* Tailored fields for IF */}
-        {isIf && (
-          <div className={`space-y-1 pt-2 border-t ${isDarkTheme ? 'border-[#2d3139]' : 'border-slate-200'}`}>
-            <label className="text-[11px] font-semibold text-[#fec514]">Condition Expression (condition) *</label>
-            <textarea
-              rows={3}
-              value={nodeData.condition || ''}
-              onChange={(e) => handleChange('condition', e.target.value)}
-              placeholder='event.alerts[0].kibana.alert.risk_score >= 80'
-              className={`w-full text-xs font-mono p-2 rounded border focus:outline-none focus:border-[#fec514] ${
-                isDarkTheme ? 'bg-[#121315] text-amber-200 border-[#2d3139]' : 'bg-amber-50/50 text-amber-900 border-amber-300'
-              }`}
-            />
-            <p className={`text-[10px] ${isDarkTheme ? 'text-neutral-400' : 'text-slate-500'}`}>Enter a KQL or boolean Liquid expression.</p>
-          </div>
-        )}
-
-        {/* Tailored fields for FOREACH */}
-        {isForeach && (
-          <div className={`space-y-1 pt-2 border-t ${isDarkTheme ? 'border-[#2d3139]' : 'border-slate-200'}`}>
-            <label className="text-[11px] font-semibold text-[#3274d9]">Loop Array (foreach) *</label>
-            <input
-              type="text"
-              value={nodeData.foreach || ''}
-              onChange={(e) => handleChange('foreach', e.target.value)}
-              placeholder='${{ event.alerts }}'
-              className={`w-full text-xs font-mono px-2.5 py-1.5 rounded border focus:outline-none focus:border-[#3274d9] ${
-                isDarkTheme ? 'bg-[#121315] text-sky-200 border-[#2d3139]' : 'bg-blue-50/50 text-blue-900 border-blue-300'
-              }`}
-            />
-            <p className={`text-[10px] ${isDarkTheme ? 'text-neutral-400' : 'text-slate-500'}`}>Reference to array to iterate over.</p>
-          </div>
-        )}
-
-        {/* Tailored fields for Console */}
-        {nodeData.type === 'console' && (
-          <div className={`space-y-1 pt-2 border-t ${isDarkTheme ? 'border-[#2d3139]' : 'border-slate-200'}`}>
-            <label className={labelClass}>Message (with.message)</label>
-            <textarea
-              rows={4}
-              value={nodeData.with?.message || ''}
-              onChange={(e) => handleWithFieldChange('message', e.target.value)}
-              placeholder="Message to log or {{ steps.prev.output }}"
-              className={inputClass}
-            />
-          </div>
-        )}
-
-        {/* Tailored fields for Elasticsearch Search */}
-        {nodeData.type === 'elasticsearch.search' && (
-          <div className={`space-y-3 pt-2 border-t ${isDarkTheme ? 'border-[#2d3139]' : 'border-slate-200'}`}>
-            <div className="space-y-1">
-              <label className={labelClass}>Index (with.index)</label>
-              <input
-                type="text"
-                value={nodeData.with?.index || ''}
-                onChange={(e) => handleWithFieldChange('index', e.target.value)}
-                placeholder="logs-* or kibana-sample-*"
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className={labelClass}>Size (with.size)</label>
-              <input
-                type="number"
-                value={nodeData.with?.size ?? 10}
-                onChange={(e) => handleWithFieldChange('size', Number(e.target.value))}
-                className={inputClass}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Raw with JSON editor for advanced/unknown */}
-        {!isIf && !isForeach && (
-          <div className={`space-y-1 pt-2 border-t ${isDarkTheme ? 'border-[#2d3139]' : 'border-slate-200'}`}>
-            <label className={`${labelClass} flex items-center justify-between`}>
-              <span>Parameters (with JSON)</span>
-              {rawJsonError && <span className="text-rose-400 text-[10px]">Invalid JSON</span>}
-            </label>
-            <textarea
-              rows={5}
-              value={rawWithJson}
-              onChange={(e) => handleRawJsonChange(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-        )}
+        {/* Step-Aware Dynamic Form Engine */}
+        <div className="pt-2">
+          <DynamicStepForm
+            nodeData={nodeData}
+            onChange={handleChange}
+            variables={availableVariables}
+            isDarkTheme={isDarkTheme}
+          />
+        </div>
       </div>
     </div>
   );

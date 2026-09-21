@@ -316,10 +316,10 @@ export const TopBar: React.FC<TopBarProps> = ({
         {validationErrorsCount > 0 && (
           <div 
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30 shrink-0 select-none animate-pulse"
-            title={`${validationErrorsCount} adet şema / doğrulama sorunu var. Ayrıntılar için alt kısımdaki YAML editörüne bakın.`}
+            title={`${validationErrorsCount} schema validation issue(s). See bottom YAML editor for details.`}
           >
             <AlertTriangle size={13} className="shrink-0 text-rose-400" />
-            <span>{validationErrorsCount} Hata</span>
+            <span>{validationErrorsCount} Issue{validationErrorsCount > 1 ? 's' : ''}</span>
           </div>
         )}
 
@@ -339,7 +339,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={onCancelRun}
             className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm animate-pulse cursor-pointer"
-            title="Çalışan workflow testini iptal et / durdur"
+            title="Stop / Cancel running execution"
           >
             <Square size={12} className="fill-current" />
             <span>Stop</span>
@@ -348,7 +348,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={onTriggerRun}
             className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-sm active:scale-95 cursor-pointer"
-            title="Workflow'u Kibana üzerinde canlı çalıştır ve izle"
+            title="Run test workflow live on Kibana"
           >
             <Play size={12} className="fill-current" />
             <span>Run</span>
@@ -366,7 +366,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                   ? 'text-neutral-300 bg-[#20222b] hover:bg-[#272a37] border-[#2d3139]'
                   : 'text-slate-700 bg-slate-100 hover:bg-slate-200 border-slate-300'
             }`}
-            title="Canlı İzleme Panelini Aç/Kapat"
+            title="Toggle Live Execution Monitor panel"
           >
             {isRunning ? (
               <Loader2 size={13} className="animate-spin text-sky-400" />
@@ -380,7 +380,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Divider */}
         <div className={`h-4 w-[1px] ${isDarkTheme ? 'bg-[#2d3139]' : 'bg-slate-300'} mx-1`} />
 
-        {/* User Avatar Circle (Sağ Üst Yuvarlak) */}
+        {/* User Avatar Circle */}
         {currentUser && (
           <div className="relative" ref={userMenuRef}>
             <button

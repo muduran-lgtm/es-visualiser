@@ -10,9 +10,9 @@ export interface LayoutOptions {
 }
 
 /**
- * layoutGraph soyutlaması:
- * Graf yerleşimini @dagrejs/dagre ile hesaplar.
- * İleride elkjs veya başka bir motora geçiş için arayüz soyutlanmıştır.
+ * layoutGraph abstraction:
+ * Computes graph layout using @dagrejs/dagre.
+ * Abstracted interface allowing future migration to elkjs or alternative layout engines.
  */
 export function layoutGraph<T extends Record<string, any>>(
   nodes: Node<T>[],

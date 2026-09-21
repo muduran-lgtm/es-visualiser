@@ -5,7 +5,7 @@ describe('yamlSync: Round-trip and lossless transformation', () => {
   it('converts YAML to Graph nodes and edges correctly', () => {
     const sampleYaml = `
 name: Test Workflow
-description: Deneme açıklaması
+description: Sample description
 enabled: true
 triggers:
   - type: manual
@@ -27,9 +27,9 @@ steps:
   });
 
   it('preserves unknown fields, comments, and custom metadata on round-trip', () => {
-    const yamlWithUnknowns = `# Özel bir başlık yorumu
+    const yamlWithUnknowns = `# Custom header comment
 name: Unchanged Workflow
-# Sabitler bloğu korunmalı
+# Constants block must be preserved
 consts:
   custom_threshold: 99
   internal_token: "secret"
@@ -42,7 +42,7 @@ steps:
       message: "ok"
   - name: unknown_custom_step
     type: custom.internal.action
-    custom_attribute: "değer korunmalı"
+    custom_attribute: "value must be preserved"
     with:
       foo: bar
 `;
@@ -52,11 +52,11 @@ steps:
     // Round-trip back to YAML
     const regeneratedYaml = graphToYaml(yamlWithUnknowns, parseRes.nodes);
 
-    expect(regeneratedYaml).toContain('Özel bir başlık yorumu');
+    expect(regeneratedYaml).toContain('Custom header comment');
     expect(regeneratedYaml).toContain('custom_threshold: 99');
     expect(regeneratedYaml).toContain('custom.internal.action');
     expect(regeneratedYaml).toContain('custom_attribute:');
-    expect(regeneratedYaml).toContain('değer korunmalı');
+    expect(regeneratedYaml).toContain('value must be preserved');
   });
 
   it('detects duplicate step names and emits warning', () => {

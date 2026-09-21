@@ -347,7 +347,7 @@ export const App: React.FC = () => {
     handleYamlChange(updatedYaml);
     setNotification({
       type: 'success',
-      message: `Hızlı düzeltme uygulandı: ${fix.title}`
+      message: `Quick fix applied: ${fix.title}`
     });
   }, [yamlContent, handleYamlChange]);
 
@@ -357,9 +357,9 @@ export const App: React.FC = () => {
     const valResult = validateWorkflowYaml(yamlContent);
     if (!valResult.valid && valResult.errors.length > 0) {
       const topErrors = valResult.errors.slice(0, 3).map(e => `• ${e.message}`).join('\n');
-      const extraCount = valResult.errors.length > 3 ? `\n... ve ${valResult.errors.length - 3} hata daha` : '';
+      const extraCount = valResult.errors.length > 3 ? `\n... and ${valResult.errors.length - 3} more issue(s)` : '';
       const confirmSave = window.confirm(
-        `⚠️ Bu workflow'da Kibana tarafından reddedilebilecek ${valResult.errors.length} adet doğrulama hatası tespit edildi:\n\n${topErrors}${extraCount}\n\nYine de kaydetmek istiyor musunuz?`
+        `⚠️ ${valResult.errors.length} schema validation issue(s) detected that may be rejected by Kibana:\n\n${topErrors}${extraCount}\n\nDo you still want to save?`
       );
       if (!confirmSave) {
         return;
@@ -674,6 +674,8 @@ export const App: React.FC = () => {
           {/* Right: Properties */}
           <Properties
             selectedNode={selectedNode}
+            nodes={nodes}
+            edges={edges}
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNode}
             workflowMeta={{

@@ -36,8 +36,8 @@ const KNOWN_STEP_TYPES = new Set([
 ]);
 
 /**
- * YAML içeriğini React Flow düğümlerine ve kenarlarına dönüştürür.
- * eemeli/yaml Document API'si kullanılır.
+ * Converts YAML string to React Flow nodes and edges.
+ * Powered by eemeli/yaml Document AST parser.
  */
 export function yamlToGraph(yamlString: string): ParseResult {
   if (!yamlString || !yamlString.trim()) {
@@ -140,7 +140,7 @@ export function yamlToGraph(yamlString: string): ParseResult {
     };
   }
 
-  // 2. Ana Steps Düğümleri ve Bağlantıları
+  // 2. Main Steps Nodes and Edges
   const steps = Array.isArray(json.steps) ? json.steps : [];
   let previousMainStepId: string | null = null;
 
@@ -148,7 +148,7 @@ export function yamlToGraph(yamlString: string): ParseResult {
     const stepNode = createStepNode(step, idx + 1);
     nodes.push(stepNode);
 
-    // İlk adımı tüm tetikleyicilere bağla
+    // Connect first step to all triggers
     if (idx === 0) {
       triggers.forEach((_tr: any, tIdx: number) => {
         edges.push({
@@ -162,7 +162,7 @@ export function yamlToGraph(yamlString: string): ParseResult {
       });
     }
 
-    // Ana adımlar arası doğrusal bağlantı
+    // Sequential connection between main steps
     if (previousMainStepId) {
       edges.push({
         id: `edge-${previousMainStepId}-${stepNode.id}`,
@@ -174,9 +174,9 @@ export function yamlToGraph(yamlString: string): ParseResult {
     }
     previousMainStepId = stepNode.id;
 
-    // İç İçe Dallanmalar: if (then / else)
+    // Nested Branching: if (then / else)
     if (step.type === 'if') {
-      // Then dallanması
+      // Then branch
       if (Array.isArray(step.steps) && step.steps.length > 0) {
         let prevThenId = stepNode.id;
         step.steps.forEach((subStep: any, sIdx: number) => {
@@ -194,7 +194,7 @@ export function yamlToGraph(yamlString: string): ParseResult {
         });
       }
 
-      // Else dallanması
+      // Else branch
       if (Array.isArray(step.else) && step.else.length > 0) {
         let prevElseId = stepNode.id;
         step.else.forEach((subStep: any, sIdx: number) => {
@@ -213,7 +213,7 @@ export function yamlToGraph(yamlString: string): ParseResult {
       }
     }
 
-    // İç İçe Dallanmalar: foreach
+    // Nested Branching: foreach loop
     if (step.type === 'foreach') {
       if (Array.isArray(step.steps) && step.steps.length > 0) {
         let prevLoopId = stepNode.id;
@@ -244,8 +244,8 @@ export function yamlToGraph(yamlString: string): ParseResult {
 }
 
 /**
- * Graf düğümlerindeki değişiklikleri orijinal YAML yapısını bozmadan geri yazar.
- * Tanınmayan alanları, açıklamaları ve üst seviye anahtarları eksiksiz korur.
+ * Synchronizes graph changes back into YAML preserving comments, format, and structure.
+ * Unrecognized keys, custom metadata, and comments are strictly preserved.
  */
 export function graphToYaml(
   originalYaml: string,
@@ -259,7 +259,7 @@ export function graphToYaml(
     doc = new yaml.Document();
   }
 
-  // Üst düzey meta alanları güncelle
+  // Update top-level metadata
   if (extraMetadata?.name !== undefined) {
     doc.set('name', extraMetadata.name);
   }
@@ -270,7 +270,7 @@ export function graphToYaml(
     doc.set('description', extraMetadata.description);
   }
 
-  // 1. Triggers güncelleme
+  // 1. Update Triggers
   const triggerNodes = nodes.filter(n => n.data.nodeCategory === 'trigger');
   if (triggerNodes.length > 0) {
     const triggersYamlList = triggerNodes.map(tn => {
@@ -286,8 +286,8 @@ export function graphToYaml(
     doc.set('triggers', triggersYamlList);
   }
 
-  // 2. Steps güncelleme
-  // Sadece ana seviye step düğümlerini topla (iç içe olanlar parent prefix içerir)
+  // 2. Update Steps
+  // Collect top-level step nodes (nested ones have parent prefix)
   const mainStepNodes = nodes.filter(
     n => n.data.nodeCategory !== 'trigger' && !n.id.includes('-then-') && !n.id.includes('-else-') && !n.id.includes('-loop-')
   );
@@ -295,7 +295,7 @@ export function graphToYaml(
   const stepsYamlList = mainStepNodes.map(sn => {
     const data = sn.data;
 
-    // Eğer bilinmeyen generic bir step ise ve orijinal alanları saklanmışsa koru
+    // Preserve raw properties for unknown/generic steps
     const base: Record<string, any> = data.rawStep ? { ...data.rawStep } : {};
     base.name = data.name;
     base.type = data.type;
@@ -309,7 +309,7 @@ export function graphToYaml(
 
     if (data.type === 'if') {
       if (data.condition) base.condition = data.condition;
-      // then alt adımlarını topla
+      // Collect 'then' substeps
       const thenNodes = nodes.filter(n => n.id.startsWith(`${sn.id}-then-`));
       if (thenNodes.length > 0) {
         base.steps = thenNodes.map(tn => {
@@ -326,7 +326,7 @@ export function graphToYaml(
           return subBase;
         });
       }
-      // else alt adımlarını topla
+      // Collect 'else' substeps
       const elseNodes = nodes.filter(n => n.id.startsWith(`${sn.id}-else-`));
       if (elseNodes.length > 0) {
         base.else = elseNodes.map(en => {

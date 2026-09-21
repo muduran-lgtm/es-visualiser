@@ -98,7 +98,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
             className={`p-1 rounded transition-colors ${
               isDarkTheme ? 'hover:bg-[#282b36] text-neutral-400 hover:text-neutral-200' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-800'
             }`}
-            title={isCollapsed ? 'Paneli Genişlet' : 'Paneli Küçült'}
+            title={isCollapsed ? 'Expand Panel' : 'Collapse Panel'}
           >
             {isCollapsed ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
@@ -119,7 +119,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
                   ? 'bg-[#232634] text-neutral-300 hover:text-white hover:bg-[#2e3245] border-[#363a4c]'
                   : 'bg-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-300 border-slate-300'
               }`}
-              title="YAML kaynak kod editörüne geç"
+              title="Switch to YAML Source editor"
             >
               <Code size={12} className="text-[#00bfb3]" />
               <span>YAML Source</span>
@@ -174,19 +174,19 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
             <button
               onClick={onCancelRun}
               className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer shadow-xs"
-              title="Çalıştırmayı İptal Et"
+              title="Cancel Execution"
             >
               <Square size={12} className="fill-current" />
-              <span>Durdur (Cancel)</span>
+              <span>Cancel</span>
             </button>
           ) : (
             <button
               onClick={onTriggerRun}
               className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded bg-[#00bfb3] hover:bg-[#00a89d] text-[#111317] transition-all cursor-pointer shadow-sm active:scale-95"
-              title="Workflow'u Kibana üzerinde çalıştır ve test et"
+              title="Run and test workflow on Kibana"
             >
               <Play size={12} className="fill-current" />
-              <span>Test Çalıştır (Run)</span>
+              <span>Run Test</span>
             </button>
           )}
 
@@ -201,10 +201,10 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
                 ? 'bg-[#232633] hover:bg-[#2c3040] text-neutral-300' 
                 : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
             }`}
-            title="Geçmiş çalıştırmaları görüntüle"
+            title="View execution history"
           >
             <History size={13} />
-            <span>Geçmiş ({executionHistory.length})</span>
+            <span>History ({executionHistory.length})</span>
           </button>
         </div>
       </div>
@@ -230,7 +230,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
                     <span>Executing workflow steps...</span>
                   </div>
                 ) : (
-                  <span>Henüz bir çalıştırma başlatılmadı. "Test Çalıştır" butonuna tıklayarak akışı koşturabilirsiniz.</span>
+                  <span>No execution has been triggered yet. Click "Run Test" to execute the workflow.</span>
                 )}
               </div>
             ) : (
@@ -333,10 +333,10 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
                     className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] transition-colors ${
                       isDarkTheme ? 'hover:bg-neutral-800 text-neutral-300' : 'hover:bg-slate-200 text-slate-700'
                     }`}
-                    title="Çıktıyı Kopyala"
+                    title="Copy Output JSON"
                   >
                     {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-                    <span>{copied ? 'Kopyalandı' : 'JSON Kopyala'}</span>
+                    <span>{copied ? 'Copied' : 'Copy JSON'}</span>
                   </button>
                 </div>
 
@@ -373,7 +373,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
               <div className={`flex-1 flex items-center justify-center text-xs ${
                 isDarkTheme ? 'text-neutral-500' : 'text-slate-400'
               }`}>
-                Sol listeden veya tuvalden bir adıma tıklayarak o adımın canlı çıktılarını inceleyebilirsiniz.
+                Click on a step in the left timeline or canvas to inspect its live outputs.
               </div>
             )}
           </div>
@@ -388,20 +388,20 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
           <div className="p-3 border-b flex items-center justify-between font-bold text-xs">
             <span className="flex items-center gap-1.5">
               <History size={14} className="text-[#00bfb3]" />
-              Çalıştırma Geçmişi ({executionHistory.length})
+              Execution History ({executionHistory.length})
             </span>
             <div className="flex items-center gap-1">
               <button 
                 onClick={onRefreshHistory}
                 className="p-1 rounded hover:bg-neutral-800 text-neutral-400 hover:text-white"
-                title="Yenile"
+                title="Refresh"
               >
                 <RefreshCw size={12} />
               </button>
               <button 
                 onClick={() => setShowHistoryModal(false)}
                 className="p-1 rounded hover:bg-neutral-800 text-neutral-400 hover:text-white"
-                title="Kapat"
+                title="Close"
               >
                 <X size={12} />
               </button>
@@ -411,7 +411,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
           <div className="flex-1 overflow-y-auto divide-y divide-neutral-800/40 text-xs">
             {executionHistory.length === 0 ? (
               <div className="p-4 text-center text-neutral-500">
-                Kayıtlı çalıştırma geçmişi bulunamadı.
+                No recorded execution history found.
               </div>
             ) : (
               executionHistory.map((item) => (
@@ -437,7 +437,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
                       <span className="font-semibold truncate">{item.id.substring(0, 16)}...</span>
                     </div>
                     <div className="text-[10px] text-neutral-400 mt-0.5">
-                      {new Date(item.startedAt).toLocaleString('tr-TR')}
+                      {new Date(item.startedAt).toLocaleString()}
                     </div>
                   </div>
 
